@@ -1,0 +1,46 @@
+[
+ {
+  "generic_name": "Furosemide Injection",
+  "company_name": "Hospira, Inc.",
+  "presentation": "Furosemide Injection, 10 mg/mL, 4 mL vial",
+  "dosage_form": "Injection, solution",
+  "status": "Current",
+  "availability": "Limited supply",
+  "shortage_reason": "Demand increase for the drug",
+  "update_date": "09/12/2026",
+  "initial_posting_date": "08/01/2026",
+  "openfda": {
+   "substance_name": [
+    "FUROSEMIDE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ]
+  }
+ },
+ {
+  "generic_name": "Bumetanide Injection",
+  "company_name": "Hikma Pharmaceuticals USA Inc.",
+  "presentation": "Bumetanide Injection, 0.25 mg/mL",
+  "dosage_form": "Injection",
+  "status": "Resolved",
+  "update_date": "02/01/2026",
+  "openfda": {
+   "substance_name": [
+    "BUMETANIDE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ]
+  }
+ },
+ {
+  "generic_name": "Amoxicillin Oral Powder for Suspension",
+  "company_name": "Sandoz Inc",
+  "presentation": "Amoxicillin for oral suspension 400 mg/5 mL",
+  "dosage_form": "Powder, for suspension",
+  "status": "Current",
+  "shortage_reason": "Demand increase for the drug",
+  "update_date": "07/30/2026"
+ }
+]

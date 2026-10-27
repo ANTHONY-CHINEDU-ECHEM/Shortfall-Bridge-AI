@@ -1,0 +1,568 @@
+[
+ {
+  "set_id": "fx-iv-hospira",
+  "id": "fx-iv-hospira-v",
+  "version": "3",
+  "effective_time": "20240115",
+  "openfda": {
+   "generic_name": [
+    "FUROSEMIDE"
+   ],
+   "brand_name": [
+    "Furosemide"
+   ],
+   "manufacturer_name": [
+    "Hospira, Inc."
+   ],
+   "substance_name": [
+    "FUROSEMIDE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "803467"
+   ],
+   "pharm_class_epc": [
+    "Loop Diuretic [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Furosemide is indicated for the treatment of edema associated with congestive heart failure, cirrhosis of the liver, and renal disease. Parenteral therapy is reserved for patients unable to take oral medication."
+  ],
+  "dosage_and_administration": [
+   "The usual initial dose of furosemide is 20 to 40 mg given as a single dose, injected intramuscularly or intravenously. The intravenous dose should be given slowly over 1 to 2 minutes."
+  ],
+  "contraindications": [
+   "Furosemide is contraindicated in patients with anuria. Furosemide is contraindicated in patients with a history of hypersensitivity to furosemide."
+  ],
+  "boxed_warning": [
+   "Furosemide is a potent diuretic which, if given in excessive amounts, can lead to a profound diuresis with water and electrolyte depletion."
+  ],
+  "drug_interactions": [
+   "Furosemide may increase the ototoxic potential of aminoglycoside antibiotics, especially in the presence of impaired renal function. Lithium generally should not be given with diuretics because they reduce lithium's renal clearance."
+  ]
+ },
+ {
+  "set_id": "fx-po-mylan",
+  "id": "fx-po-mylan-v",
+  "version": "3",
+  "effective_time": "20230610",
+  "openfda": {
+   "generic_name": [
+    "FUROSEMIDE"
+   ],
+   "brand_name": [
+    "Furosemide"
+   ],
+   "manufacturer_name": [
+    "Mylan Pharmaceuticals Inc."
+   ],
+   "substance_name": [
+    "FUROSEMIDE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "870379"
+   ],
+   "pharm_class_epc": [
+    "Loop Diuretic [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Furosemide tablets are indicated for the treatment of edema associated with congestive heart failure and for hypertension."
+  ],
+  "dosage_and_administration": [
+   "Edema: the usual initial dose is 20 to 80 mg given as a single dose. Hypertension: the usual initial dose is 80 mg divided into two doses."
+  ],
+  "contraindications": [
+   "Furosemide is contraindicated in patients with anuria."
+  ]
+ },
+ {
+  "set_id": "bu-iv-hikma",
+  "id": "bu-iv-hikma-v",
+  "version": "3",
+  "effective_time": "20240301",
+  "openfda": {
+   "generic_name": [
+    "BUMETANIDE"
+   ],
+   "brand_name": [
+    "Bumetanide"
+   ],
+   "manufacturer_name": [
+    "Hikma Pharmaceuticals USA Inc."
+   ],
+   "substance_name": [
+    "BUMETANIDE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "135069"
+   ],
+   "pharm_class_epc": [
+    "Loop Diuretic [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Bumetanide is indicated for the treatment of edema associated with congestive heart failure, hepatic and renal disease, including the nephrotic syndrome."
+  ],
+  "dosage_and_administration": [
+   "Parenteral administration: the usual initial dose is 0.5 to 1 mg intravenously or intramuscularly. If the response is insufficient, a second or third dose may be given at intervals of 2 to 3 hours, not exceeding a daily dosage of 10 mg."
+  ],
+  "contraindications": [
+   "Bumetanide is contraindicated in anuria and in patients in hepatic coma or in states of severe electrolyte depletion until the condition is improved."
+  ],
+  "boxed_warning": [
+   "Bumetanide is a potent diuretic which, if given in excessive amounts, can lead to a profound diuresis with water and electrolyte depletion."
+  ],
+  "drug_interactions": [
+   "Drugs with ototoxic potential, especially aminoglycoside antibiotics, should be avoided where possible. Lithium should generally not be given with diuretics."
+  ]
+ },
+ {
+  "set_id": "to-po-ant",
+  "id": "to-po-ant-v",
+  "version": "3",
+  "effective_time": "20220901",
+  "openfda": {
+   "generic_name": [
+    "TORSEMIDE"
+   ],
+   "brand_name": [
+    "Torsemide"
+   ],
+   "manufacturer_name": [
+    "Ascend Laboratories, LLC"
+   ],
+   "substance_name": [
+    "TORSEMIDE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "55837"
+   ],
+   "pharm_class_epc": [
+    "Loop Diuretic [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Torsemide tablets are indicated for the treatment of edema associated with heart failure, renal disease or hepatic disease."
+  ],
+  "dosage_and_administration": [
+   "Heart failure: the usual initial dose is 10 mg or 20 mg once daily."
+  ],
+  "contraindications": [
+   "Torsemide is contraindicated in patients with known hypersensitivity to torsemide or to sulfonylureas, and in patients who are anuric."
+  ]
+ },
+ {
+  "set_id": "at-po-pfz",
+  "id": "at-po-pfz-v",
+  "version": "3",
+  "effective_time": "20240520",
+  "openfda": {
+   "generic_name": [
+    "ATORVASTATIN CALCIUM"
+   ],
+   "brand_name": [
+    "Lipitor"
+   ],
+   "manufacturer_name": [
+    "Pfizer Laboratories Div Pfizer Inc"
+   ],
+   "substance_name": [
+    "ATORVASTATIN CALCIUM TRIHYDRATE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "543171"
+   ],
+   "pharm_class_epc": [
+    "HMG-CoA Reductase Inhibitor [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Atorvastatin is indicated to reduce the risk of myocardial infarction and stroke in adults with multiple risk factors for coronary heart disease, and as an adjunct to diet to reduce LDL-C."
+  ],
+  "dosage_and_administration": [
+   "The recommended starting dosage is 10 mg or 20 mg once daily. The dosage range is 10 mg to 80 mg once daily."
+  ],
+  "use_in_specific_populations": [
+   "Statins may cause fetal harm when administered to a pregnant woman. Discontinue the statin when pregnancy is recognized."
+  ],
+  "drug_interactions": [
+   "Avoid concomitant use of atorvastatin with cyclosporine, tipranavir plus ritonavir or glecaprevir plus pibrentasvir. In patients taking clarithromycin, do not exceed atorvastatin 20 mg daily."
+  ]
+ },
+ {
+  "set_id": "ro-po-az",
+  "id": "ro-po-az-v",
+  "version": "3",
+  "effective_time": "20231101",
+  "openfda": {
+   "generic_name": [
+    "ROSUVASTATIN CALCIUM"
+   ],
+   "brand_name": [
+    "Crestor"
+   ],
+   "manufacturer_name": [
+    "AstraZeneca Pharmaceuticals LP"
+   ],
+   "substance_name": [
+    "ROSUVASTATIN CALCIUM"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "571615"
+   ],
+   "pharm_class_epc": [
+    "HMG-CoA Reductase Inhibitor [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Rosuvastatin is indicated as an adjunct to diet to reduce LDL-C in adults with primary hyperlipidemia and to reduce the risk of stroke and myocardial infarction."
+  ],
+  "dosage_and_administration": [
+   "The dosage range is 5 mg to 40 mg orally once daily. Severe renal impairment (CrCl less than 30 mL/min/1.73 m2) not on hemodialysis: start at 5 mg once daily; do not exceed 10 mg once daily."
+  ],
+  "use_in_specific_populations": [
+   "Statins may cause fetal harm when administered to a pregnant woman. Discontinue the statin when pregnancy is recognized. In patients with severe renal impairment not on hemodialysis, plasma concentrations increased approximately 3 fold; dosage adjustment is required."
+  ]
+ },
+ {
+  "set_id": "si-po-mrk",
+  "id": "si-po-mrk-v",
+  "version": "3",
+  "effective_time": "20230301",
+  "openfda": {
+   "generic_name": [
+    "SIMVASTATIN"
+   ],
+   "brand_name": [
+    "Zocor"
+   ],
+   "manufacturer_name": [
+    "Merck Sharp & Dohme LLC"
+   ],
+   "substance_name": [
+    "SIMVASTATIN"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "422697"
+   ],
+   "pharm_class_epc": [
+    "HMG-CoA Reductase Inhibitor [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Simvastatin is indicated to reduce the risk of total mortality by reducing coronary heart disease death and to reduce LDL-C in adults with primary hyperlipidemia."
+  ],
+  "dosage_and_administration": [
+   "The recommended dosage is 20 mg to 40 mg once daily in the evening."
+  ],
+  "contraindications": [
+   "Simvastatin is contraindicated with concomitant use of strong CYP3A4 inhibitors such as itraconazole, ketoconazole, posaconazole, voriconazole, HIV protease inhibitors, nefazodone, erythromycin, clarithromycin and telithromycin."
+  ],
+  "use_in_specific_populations": [
+   "Statins may cause fetal harm when administered to a pregnant woman. Discontinue the statin when pregnancy is recognized."
+  ]
+ },
+ {
+  "set_id": "cl-po-abv",
+  "id": "cl-po-abv-v",
+  "version": "3",
+  "effective_time": "20220101",
+  "openfda": {
+   "generic_name": [
+    "CLARITHROMYCIN"
+   ],
+   "brand_name": [
+    "Biaxin"
+   ],
+   "manufacturer_name": [
+    "AbbVie Inc."
+   ],
+   "substance_name": [
+    "CLARITHROMYCIN"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "740632"
+   ],
+   "pharm_class_epc": [
+    "Macrolide Antimicrobial [EPC]"
+   ],
+   "pharm_class_moa": [
+    "Cytochrome P450 3A4 Inhibitors [MoA]"
+   ]
+  },
+  "indications_and_usage": [
+   "Clarithromycin is a macrolide antimicrobial indicated for mild to moderate infections caused by designated, susceptible bacteria."
+  ],
+  "contraindications": [
+   "Concomitant administration of clarithromycin with lovastatin or simvastatin is contraindicated as these statins are extensively metabolized by CYP3A4 and concomitant treatment increases the risk of myopathy."
+  ],
+  "drug_interactions": [
+   "Clarithromycin is a strong inhibitor of CYP3A and coadministration with drugs metabolized by CYP3A may increase their plasma concentrations."
+  ]
+ },
+ {
+  "set_id": "mp-iv-pfz",
+  "id": "mp-iv-pfz-v",
+  "version": "3",
+  "effective_time": "20230805",
+  "openfda": {
+   "generic_name": [
+    "METHYLPREDNISOLONE SODIUM SUCCINATE"
+   ],
+   "brand_name": [
+    "Solu-Medrol"
+   ],
+   "manufacturer_name": [
+    "Pharmacia & Upjohn Company LLC"
+   ],
+   "substance_name": [
+    "METHYLPREDNISOLONE SODIUM SUCCINATE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "240947"
+   ],
+   "pharm_class_epc": [
+    "Corticosteroid [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "When oral therapy is not feasible, methylprednisolone sodium succinate is indicated for intravenous use in endocrine disorders, rheumatic disorders, allergic states and acute exacerbations of multiple sclerosis."
+  ],
+  "dosage_and_administration": [
+   "The initial dose of methylprednisolone may vary from 10 mg to 40 mg depending on the specific disease entity being treated. High dose therapy of 30 mg/kg may be given intravenously over at least 30 minutes."
+  ],
+  "contraindications": [
+   "Methylprednisolone is contraindicated in systemic fungal infections and in patients with known hypersensitivity to the product."
+  ]
+ },
+ {
+  "set_id": "dx-iv-fre",
+  "id": "dx-iv-fre-v",
+  "version": "3",
+  "effective_time": "20240210",
+  "openfda": {
+   "generic_name": [
+    "DEXAMETHASONE SODIUM PHOSPHATE"
+   ],
+   "brand_name": [
+    "Dexamethasone Sodium Phosphate"
+   ],
+   "manufacturer_name": [
+    "Fresenius Kabi USA, LLC"
+   ],
+   "substance_name": [
+    "DEXAMETHASONE SODIUM PHOSPHATE"
+   ],
+   "route": [
+    "INTRAVENOUS"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "469742"
+   ],
+   "pharm_class_epc": [
+    "Corticosteroid [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Dexamethasone sodium phosphate injection is indicated by intravenous or intramuscular injection when oral therapy is not feasible, for endocrine, rheumatic, allergic and neoplastic conditions and cerebral edema."
+  ],
+  "dosage_and_administration": [
+   "The initial dosage of dexamethasone sodium phosphate injection varies from 0.5 mg to 9 mg a day depending on the disease being treated."
+  ],
+  "contraindications": [
+   "Dexamethasone is contraindicated in systemic fungal infections."
+  ]
+ },
+ {
+  "set_id": "ox-po-pur",
+  "id": "ox-po-pur-v",
+  "version": "3",
+  "effective_time": "20231201",
+  "openfda": {
+   "generic_name": [
+    "OXYCODONE HYDROCHLORIDE"
+   ],
+   "brand_name": [
+    "Oxycodone"
+   ],
+   "manufacturer_name": [
+    "Rhodes Pharmaceuticals L.P."
+   ],
+   "substance_name": [
+    "OXYCODONE HYDROCHLORIDE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "333181"
+   ],
+   "pharm_class_epc": [
+    "Opioid Agonist [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Oxycodone is an opioid agonist indicated for the management of pain severe enough to require an opioid analgesic."
+  ],
+  "boxed_warning": [
+   "Oxycodone exposes users to risks of addiction, abuse and misuse, which can lead to overdose and death. Concomitant use with benzodiazepines or other CNS depressants may result in profound sedation, respiratory depression, coma and death."
+  ],
+  "dosage_and_administration": [
+   "Initiate with 5 mg to 15 mg every 4 to 6 hours as needed for pain."
+  ]
+ },
+ {
+  "set_id": "mo-po-hik",
+  "id": "mo-po-hik-v",
+  "version": "3",
+  "effective_time": "20240401",
+  "openfda": {
+   "generic_name": [
+    "MORPHINE SULFATE"
+   ],
+   "brand_name": [
+    "Morphine Sulfate"
+   ],
+   "manufacturer_name": [
+    "Hikma Pharmaceuticals USA Inc."
+   ],
+   "substance_name": [
+    "MORPHINE SULFATE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "797458"
+   ],
+   "pharm_class_epc": [
+    "Opioid Agonist [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Morphine sulfate tablets are an opioid agonist indicated for the management of acute and chronic pain severe enough to require an opioid analgesic."
+  ],
+  "boxed_warning": [
+   "Morphine exposes users to risks of addiction, abuse and misuse, which can lead to overdose and death."
+  ],
+  "dosage_and_administration": [
+   "Initiate with 15 mg to 30 mg every 4 hours as needed. Severe renal impairment: use a lower starting dose and titrate slowly."
+  ],
+  "use_in_specific_populations": [
+   "Morphine pharmacokinetics are altered in renal failure. Initiate therapy with a lower dose and monitor closely in patients with severe renal impairment."
+  ]
+ },
+ {
+  "set_id": "me-po-hik",
+  "id": "me-po-hik-v",
+  "version": "3",
+  "effective_time": "20240402",
+  "openfda": {
+   "generic_name": [
+    "METHADONE HYDROCHLORIDE"
+   ],
+   "brand_name": [
+    "Methadone"
+   ],
+   "manufacturer_name": [
+    "Hikma Pharmaceuticals USA Inc."
+   ],
+   "substance_name": [
+    "METHADONE HYDROCHLORIDE"
+   ],
+   "route": [
+    "ORAL"
+   ],
+   "product_type": [
+    "HUMAN PRESCRIPTION DRUG"
+   ],
+   "rxcui": [
+    "766107"
+   ],
+   "pharm_class_epc": [
+    "Opioid Agonist [EPC]"
+   ],
+   "pharm_class_moa": []
+  },
+  "indications_and_usage": [
+   "Methadone is an opioid agonist indicated for the management of severe pain and for detoxification treatment of opioid addiction."
+  ],
+  "boxed_warning": [
+   "Life threatening QT prolongation has occurred during treatment with methadone."
+  ]
+ }
+]

@@ -1,0 +1,95 @@
+name: shortfallbridge
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: shortfall
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shortfall}
+      POSTGRES_DB: shortfall
+    command: ["postgres", "-c", "shared_buffers=1GB", "-c", "maintenance_work_mem=2GB", "-c", "max_parallel_maintenance_workers=4"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortfall -d shortfall"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      SFB_DATABASE_URL: postgresql+psycopg://shortfall:${POSTGRES_PASSWORD:-shortfall}@db:5432/shortfall
+      SFB_DATA_DIR: /data
+    volumes:
+      - sfbdata:/data
+      - hfcache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: ../infra/docker/web.Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+  # One shot ingestion job: docker compose --profile ingest run --rm ingest
+  ingest:
+    profiles: ["ingest"]
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      SFB_DATABASE_URL: postgresql+psycopg://shortfall:${POSTGRES_PASSWORD:-shortfall}@db:5432/shortfall
+      SFB_DATA_DIR: /data
+    volumes:
+      - sfbdata:/data
+      - hfcache:/root/.cache/huggingface
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["shortfall", "ingest-all"]
+
+  # Daily refresh of shortages (fast moving) without touching the label index
+  refresh:
+    profiles: ["ingest"]
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      SFB_DATABASE_URL: postgresql+psycopg://shortfall:${POSTGRES_PASSWORD:-shortfall}@db:5432/shortfall
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["shortfall", "ingest-shortages"]
+
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+volumes:
+  pgdata:
+  sfbdata:
+  hfcache:
