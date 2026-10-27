@@ -5,28 +5,9 @@
 Shortfall Bridge AI helps a pharmacist or prescriber answer one urgent question safely: **this medicine is unavailable, what can this patient have instead, at what dose, and how do I know it is safe?** It reads the entire United States drug labelling corpus, the FDA Drug Shortages database, the Orange Book of therapeutic equivalence and the NLM drug class hierarchy. It proposes ranked alternatives across four substitution tiers and screens every option through eight patient specific safety gates. Every finding comes with the official label sentence that justifies it.
 
 <p align="center">
-  <img src="docs/screenshots/workbench_light.png" alt="Substitution workbench showing a shortage banner, a ranked option with its eight safety checks as a blister strip, a dose conversion and per check rationale" width="100%">
+  <img width="2880" height="2000" alt="workbench_light" src="https://github.com/user-attachments/assets/09b8dac8-160f-4951-b778-12a07483bead" />
 </p>
 
-<a id="contents"></a>
-## Contents
-
-1. [Project brief](#brief)
-2. [What the system does](#capabilities)
-3. [Data foundation](#data)
-4. [System architecture: seven diagrams with analysis](#architecture)
-5. [Why this architecture: decisions and alternatives](#justification)
-6. [Clinical logic in detail](#clinical)
-7. [Interface and human factors](#hci)
-8. [API reference](#api)
-9. [Getting started](#start)
-10. [Configuration](#config)
-11. [Testing and evaluation](#testing)
-12. [Repository layout](#layout)
-13. [Safety, governance and limitations](#safety)
-14. [Roadmap](#roadmap)
-
-<a id="brief"></a>
 ## 1. Project brief
 
 Drug shortages are no longer an occasional supply hiccup. In the United States, active shortages reached a record high in 2024, and the list routinely includes products that hospitals cannot work without: injectable diuretics, corticosteroids, opioid analgesics, antibiotics, chemotherapy agents, local anaesthetics and intravenous fluids. The United Kingdom faces the same pattern through Serious Shortage Protocols and the Department of Health and Social Care supply alerts. Each shortage forces thousands of individual substitution decisions, made under time pressure, usually by a pharmacist working from memory, a printed conversion chart and whatever label text can be found quickly.
@@ -68,7 +49,7 @@ The system ingests only real, public, authoritative datasets. There is no synthe
 Exact record counts change with every release, so the ingestion job records the counts it actually loaded in the `ingestion_runs` table. The API exposes them at `/api/v1/meta`, and the interface shows them on the Method page. Full provenance, licensing notes and the UK adaptation path (SmPC, dm+d, BNF, DHSC supply alerts) are in [docs/data_sources.md](docs/data_sources.md).
 
 <a id="architecture"></a>
-## 4. System architecture: seven diagrams with analysis
+## 4. System architecture: Analytical logic framework
 
 The architecture follows a ports and adapters (hexagonal) design. The clinical engine depends only on a `KnowledgeStore` protocol; PostgreSQL with pgvector implements it in production, and an in memory adapter with identical semantics implements it for tests and single machine evaluation. All diagrams below are written in Mermaid and render natively on GitHub, so they are versioned, reviewable and diffable alongside the code they describe.
 
@@ -108,7 +89,7 @@ flowchart LR
     style SB fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** The context diagram fixes the trust boundary before any design detail. Three human roles interact with the system, and each wants something different: the pharmacist wants speed and completeness, the prescriber wants a clear ranked answer, and the clinical safety officer wants traceability after the fact. Four public data publishers feed the system, and all of them are government sources with stable, documented interfaces, which is why the knowledge base can claim authority without curation by hand. The single outbound dependency that carries clinical risk is the language model, and the diagram makes its constraint explicit: it receives only an evidence pack the engine has assembled, never raw patient context beyond what the engine chose to state, and never the ability to decide. Because the model sits on the edge rather than in the decision path, the system remains fully functional with the model switched off, which is the default configuration.
+The context diagram fixes the trust boundary before any design detail. Three human roles interact with the system, and each wants something different: the pharmacist wants speed and completeness, the prescriber wants a clear ranked answer, and the clinical safety officer wants traceability after the fact. Four public data publishers feed the system, and all of them are government sources with stable, documented interfaces, which is why the knowledge base can claim authority without curation by hand. The single outbound dependency that carries clinical risk is the language model, and the diagram makes its constraint explicit: it receives only an evidence pack the engine has assembled, never raw patient context beyond what the engine chose to state, and never the ability to decide. Because the model sits on the edge rather than in the decision path, the system remains fully functional with the model switched off, which is the default configuration.
 
 ### Diagram 2. Containers and deployment
 
@@ -162,7 +143,7 @@ flowchart TB
     style Data fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** The deployment separates request serving from batch work. The API containers are stateless and scale horizontally; everything durable lives in PostgreSQL, so a restart loses nothing. Ingestion runs as a one shot job under a Compose profile (or a Kubernetes CronJob in production) because downloading and embedding the full label corpus is a long, CPU bound task that must never compete with clinical requests. Shortages change daily while labels change weekly, so a separate lightweight refresh job updates only the shortage table, keeping the supply gate current without reindexing a hundred thousand labels. Nginx serves the compiled interface and applies a strict Content Security Policy, frame denial and no sniff headers, and proxies `/api` so the browser sees one origin and no CORS exposure in production. Embedding model weights live in a mounted cache so containers start without network downloads. Prometheus scrapes latency histograms per engine stage, gate outcome counters and narrative verification ratios, which are the operational signals a clinical service actually needs.
+The deployment separates request serving from batch work. The API containers are stateless and scale horizontally; everything durable lives in PostgreSQL, so a restart loses nothing. Ingestion runs as a one shot job under a Compose profile (or a Kubernetes CronJob in production) because downloading and embedding the full label corpus is a long, CPU bound task that must never compete with clinical requests. Shortages change daily while labels change weekly, so a separate lightweight refresh job updates only the shortage table, keeping the supply gate current without reindexing a hundred thousand labels. Nginx serves the compiled interface and applies a strict Content Security Policy, frame denial and no sniff headers, and proxies `/api` so the browser sees one origin and no CORS exposure in production. Embedding model weights live in a mounted cache so containers start without network downloads. Prometheus scrapes latency histograms per engine stage, gate outcome counters and narrative verification ratios, which are the operational signals a clinical service actually needs.
 
 ### Diagram 3. Data ingestion pipeline
 
@@ -225,7 +206,7 @@ flowchart LR
     style Index fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** Three design choices in this pipeline matter clinically. First, **normalisation is the riskiest step**, because the three FDA sources describe the same product differently: openFDA says route `INTRAVENOUS`, the Orange Book says `INJECTABLE;INJECTION`, and the shortage list says `Injection, solution`. A dedicated normaliser reduces every name to its active moiety (so `methylprednisolone sodium succinate` links to `methylprednisolone`), maps routes into families (parenteral, oral, oromucosal and so on), separates modified release from immediate release forms, and compares strengths on a canonical concentration (so `40 mg/4 mL` equals `10 mg/mL`). Salts are kept on the ingredient because metoprolol tartrate and metoprolol succinate are different products, but stripped for class and equivalence lookups. Second, **chunks never cross section boundaries**, so every citation maps to exactly one labelled section and the section type can drive both retrieval priors and safety gates. The chunker splits on numbered subheadings first, so a renal dosing table stays attached to its heading. Third, **ingestion is idempotent and versioned**: label partitions are cached with SHA256 checksums, upserts keep the newest label version per set id, shortages and the Orange Book are replaced atomically, and each run writes counts to `ingestion_runs` so every recommendation can state how fresh its data was.
+Three design choices in this pipeline matter clinically. First, **normalisation is the riskiest step**, because the three FDA sources describe the same product differently: openFDA says route `INTRAVENOUS`, the Orange Book says `INJECTABLE;INJECTION`, and the shortage list says `Injection, solution`. A dedicated normaliser reduces every name to its active moiety (so `methylprednisolone sodium succinate` links to `methylprednisolone`), maps routes into families (parenteral, oral, oromucosal and so on), separates modified release from immediate release forms, and compares strengths on a canonical concentration (so `40 mg/4 mL` equals `10 mg/mL`). Salts are kept on the ingredient because metoprolol tartrate and metoprolol succinate are different products, but stripped for class and equivalence lookups. Second, **chunks never cross section boundaries**, so every citation maps to exactly one labelled section and the section type can drive both retrieval priors and safety gates. The chunker splits on numbered subheadings first, so a renal dosing table stays attached to its heading. Third, **ingestion is idempotent and versioned**: label partitions are cached with SHA256 checksums, upserts keep the newest label version per set id, shortages and the Orange Book are replaced atomically, and each run writes counts to `ingestion_runs` so every recommendation can state how fresh its data was.
 
 ### Diagram 4. Knowledge model
 
@@ -255,7 +236,7 @@ flowchart LR
     class LD,CH,CLS,SH,OB,EQ,AU ent
 ```
 
-**Analysis.** The active moiety is the join key of the whole system. Labels, shortages, Orange Book products, classes and equivalence tables come from different publishers with different identifiers, but each can be reduced reliably to a normalised active moiety, so the model is a star around that hub rather than a fragile chain of cross references. Chunks carry a denormalised copy of their label's moieties and a GIN index, which lets every retrieval query filter to one candidate ingredient before scoring. Without that filter, a question about bumetanide would rank passages from furosemide labels that mention bumetanide. Each chunk also stores a `text_hash`: generic manufacturers often publish word for word identical labels, so retrieval deduplicates by hash and shows a clinician one copy of a sentence rather than forty. Classes arrive from two places: EPC classes carried on the labels themselves (available offline immediately) and ATC and EPC links from RxClass (richer, added by enrichment). The engine treats both uniformly through the store interface. The audit record closes the loop, linking every response to the exact chunks it cited.
+The active moiety is the join key of the whole system. Labels, shortages, Orange Book products, classes and equivalence tables come from different publishers with different identifiers, but each can be reduced reliably to a normalised active moiety, so the model is a star around that hub rather than a fragile chain of cross references. Chunks carry a denormalised copy of their label's moieties and a GIN index, which lets every retrieval query filter to one candidate ingredient before scoring. Without that filter, a question about bumetanide would rank passages from furosemide labels that mention bumetanide. Each chunk also stores a `text_hash`: generic manufacturers often publish word for word identical labels, so retrieval deduplicates by hash and shows a clinician one copy of a sentence rather than forty. Classes arrive from two places: EPC classes carried on the labels themselves (available offline immediately) and ATC and EPC links from RxClass (richer, added by enrichment). The engine treats both uniformly through the store interface. The audit record closes the loop, linking every response to the exact chunks it cited.
 
 ### Diagram 5. Substitution reasoning pipeline
 
@@ -310,7 +291,7 @@ flowchart TB
     style S4 fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** The pipeline mirrors how an experienced pharmacist reasons, made explicit and repeatable. The tiers are ordered by clinical disruption: switching manufacturer of an A rated product changes nothing for the patient, switching route changes bioavailability, switching ingredient changes pharmacology, and switching class changes the therapeutic approach. Candidate generation is deliberately generous, because safety filtering happens afterwards and an option that is never generated can never be shown. Tier 4 is the exception: an alternative class is only proposed when dense and lexical retrieval agree that the indications overlap and similarity clears a calibrated floor, which suppresses neighbours that share only label boilerplate. Every stage is timed and exported as a Prometheus histogram, so a slow stage is visible in production. Abstention is a first class outcome. If the drug cannot be resolved, or every candidate is blocked, the response says so plainly and recommends escalation rather than returning a weak answer.
+The pipeline mirrors how an experienced pharmacist reasons, made explicit and repeatable. The tiers are ordered by clinical disruption: switching manufacturer of an A rated product changes nothing for the patient, switching route changes bioavailability, switching ingredient changes pharmacology, and switching class changes the therapeutic approach. Candidate generation is deliberately generous, because safety filtering happens afterwards and an option that is never generated can never be shown. Tier 4 is the exception: an alternative class is only proposed when dense and lexical retrieval agree that the indications overlap and similarity clears a calibrated floor, which suppresses neighbours that share only label boilerplate. Every stage is timed and exported as a Prometheus histogram, so a slow stage is visible in production. Abstention is a first class outcome. If the drug cannot be resolved, or every candidate is blocked, the response says so plainly and recommends escalation rather than returning a weak answer.
 
 ### Diagram 6. Safety and grounding architecture
 
@@ -360,7 +341,7 @@ flowchart LR
     style Narrative fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** This diagram shows the two independent defences against harm. The first defence is the gate layer. Gates do not depend on retrieval ranking: they read the complete relevant sections of each candidate's labels, so a contraindication on the ninth passage is found as reliably as one on the first. Rule extractors turn label language into checkable rules. A sentence such as "Contraindicated in patients with CrCl less than 30 mL/min" becomes a threshold with an action of contraindicated, and qualitative phrases such as "severe renal impairment" map to conservative thresholds. Interactions are checked in both directions, the candidate's label naming the patient's medicine and the medicine's label naming the candidate, at both ingredient and class level. That is how simvastatin is blocked for a patient on clarithromycin even though the trigger sentence appears in either label. Missing data produces **Needs data**, never Clear. The second defence is the grounding verifier. Even when a language model writes the summary, every sentence must cite engine facts or label passages that exist in the evidence pack, every number must appear in the cited text, and every drug named must belong to the decision. Failing sentences are dropped, and if fewer than 60 percent survive, the system discards the model output entirely and uses the deterministic template.
+This diagram shows the two independent defences against harm. The first defence is the gate layer. Gates do not depend on retrieval ranking: they read the complete relevant sections of each candidate's labels, so a contraindication on the ninth passage is found as reliably as one on the first. Rule extractors turn label language into checkable rules. A sentence such as "Contraindicated in patients with CrCl less than 30 mL/min" becomes a threshold with an action of contraindicated, and qualitative phrases such as "severe renal impairment" map to conservative thresholds. Interactions are checked in both directions, the candidate's label naming the patient's medicine and the medicine's label naming the candidate, at both ingredient and class level. That is how simvastatin is blocked for a patient on clarithromycin even though the trigger sentence appears in either label. Missing data produces **Needs data**, never Clear. The second defence is the grounding verifier. Even when a language model writes the summary, every sentence must cite engine facts or label passages that exist in the evidence pack, every number must appear in the cited text, and every drug named must belong to the decision. Failing sentences are dropped, and if fewer than 60 percent survive, the system discards the model output entirely and uses the deterministic template.
 
 ### Diagram 7. Observability, evaluation and governance loop
 
@@ -404,7 +385,7 @@ flowchart LR
     style Governance fill:#f7f9fb,stroke:#d6dde4,color:#1c2733
 ```
 
-**Analysis.** A clinical decision support system is only as safe as its feedback loop. At runtime, three metrics carry most of the signal. The narrative acceptance ratio reveals model drift: if a provider changes a model and acceptance falls, the template fallback protects users while the histogram shows the problem. Gate outcome counters reveal data problems: a sudden drop in Needs data outcomes may mean a form field broke rather than that patients improved. Stage timings localise latency. Offline, unit tests pin down every normalisation, rule and conversion, integration tests prove the PostgreSQL adapter behaves identically to the in memory adapter, and the scenario suite encodes clinical expectations as properties (for example "methadone must never receive an automated dose"). Governance closes the loop: the clinical safety officer reviews audit samples and metrics, and every newly identified hazard becomes a new evaluation scenario, so the test suite grows with operational experience. The hazard log in [docs/clinical_safety_case.md](docs/clinical_safety_case.md) follows the DCB0129 structure used in NHS clinical risk management.
+A clinical decision support system is only as safe as its feedback loop. At runtime, three metrics carry most of the signal. The narrative acceptance ratio reveals model drift: if a provider changes a model and acceptance falls, the template fallback protects users while the histogram shows the problem. Gate outcome counters reveal data problems: a sudden drop in Needs data outcomes may mean a form field broke rather than that patients improved. Stage timings localise latency. Offline, unit tests pin down every normalisation, rule and conversion, integration tests prove the PostgreSQL adapter behaves identically to the in memory adapter, and the scenario suite encodes clinical expectations as properties (for example "methadone must never receive an automated dose"). Governance closes the loop: the clinical safety officer reviews audit samples and metrics, and every newly identified hazard becomes a new evaluation scenario, so the test suite grows with operational experience. The hazard log in [docs/clinical_safety_case.md](docs/clinical_safety_case.md) follows the DCB0129 structure used in NHS clinical risk management.
 
 <a id="justification"></a>
 ## 5. Why this architecture: decisions and alternatives
@@ -476,8 +457,8 @@ Scores are deliberately simple and fully visible: a tier base (1.00, 0.80, 0.62,
 The interface is designed for a pharmacist working quickly at a ward computer or on a phone in a corridor. Its design decisions follow established clinical decision support and accessibility guidance.
 
 <table>
-<tr><td width="50%"><img src="docs/screenshots/evidence_drawer.png" alt="Evidence drawer showing cited label passages in serif typography with section names, effective dates and DailyMed links"></td><td width="50%"><img src="docs/screenshots/workbench_dark.png" alt="Workbench in dark theme"></td></tr>
-<tr><td><i>Evidence drawer: cited label text set in a serif face so it reads like the printed package insert, with the section, effective date and a link to the live label.</i></td><td><i>Dark theme with the same status semantics, for night shifts and low light clinical areas.</i></td></tr>
+<tr><td width="50%"><img width="2880" height="2000" alt="evidence_drawer" src="https://github.com/user-attachments/assets/218a65a8-8e9d-4f48-8ff2-435c083faddb" /></td><td width="50%"><img width="2880" height="2000" alt="workbench_dark" src="https://github.com/user-attachments/assets/c1f7015c-d608-41ea-b07f-5e8cb2ebbcdb" />
+</td></tr><tr><td><i>Evidence drawer: cited label text set in a serif face so it reads like the printed package insert, with the section, effective date and a link to the live label.</i></td><td><i>Dark theme with the same status semantics, for night shifts and low light clinical areas.</i></td></tr>
 </table>
 
 * **The blister strip.** The eight gates appear as a strip of cells modelled on a blister pack. Shape carries meaning as well as colour: a filled circle for Clear, a triangle for Caution, a crossed circle for Blocked and a dashed empty cell for Needs data. Clinicians with colour vision deficiency read the strip without loss, and screen readers announce a full sentence summary of all eight checks.
@@ -489,7 +470,7 @@ The interface is designed for a pharmacist working quickly at a ward computer or
 * **Responsive and accessible.** The layout works down to a 320 pixel phone, respects reduced motion and passes WCAG AA contrast in both themes.
 * **Typography.** Public Sans, the typeface of US federal digital services, for the interface, matching the provenance of the data. Source Serif 4 for quoted label evidence.
 
-<p align="center"><img src="docs/screenshots/mobile_workbench.png" alt="Workbench on a phone" width="300"></p>
+<p align="center"><img width="1170" height="2532" alt="mobile_workbench" src="https://github.com/user-attachments/assets/a1b74a24-f531-4d16-a7eb-d5bb4aa323b5" /></p>
 
 Screenshots were captured from the development build. After ingesting the full corpus, regenerate them from your own deployment with `make screenshots`.
 
