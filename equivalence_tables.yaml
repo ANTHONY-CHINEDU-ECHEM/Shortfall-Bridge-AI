@@ -1,0 +1,137 @@
+# Dose equivalence reference tables used for therapeutic interchange.
+#
+# Every table is a published, widely used clinical reference. Values are approximations for a
+# STARTING POINT that a clinician then verifies and titrates. The engine never converts a drug
+# listed under `excluded`, and it refuses routes a table does not cover.
+#
+# Table types
+#   ratio: members map route -> equivalent dose in `unit`. dose_to = dose_from / eq_from * eq_to
+#   mme:   members map route -> conversion factor to oral morphine milligram equivalents.
+#          dose_to = dose_from * factor_from / factor_to, then reduced for incomplete cross tolerance
+#   band:  members map intensity band -> [min, max] daily dose; conversion keeps the band
+
+tables:
+  - id: opioid_mme
+    type: mme
+    title: Opioid analgesics, oral morphine milligram equivalents
+    unit: mg
+    reference: >-
+      Dowell D, Ragan KR, Jones CM, Baldwin GT, Chou R. CDC Clinical Practice Guideline for
+      Prescribing Opioids for Pain, United States, 2022. MMWR Recomm Rep 2022;71(No. RR-3), Table 1.
+    reference_url: https://www.cdc.gov/mmwr/volumes/71/rr/rr7103a1.htm
+    cross_tolerance_reduction: [0.25, 0.50]
+    warnings:
+      - MME factors estimate relative exposure and were not designed as opioid rotation tables.
+      - Reduce the calculated dose by 25 to 50 percent for incomplete cross tolerance and titrate to effect.
+      - Reassess respiratory depression risk, renal and hepatic function, and concomitant sedatives.
+    members:
+      morphine: { oral: 1.0 }
+      codeine: { oral: 0.15 }
+      hydrocodone: { oral: 1.0 }
+      hydromorphone: { oral: 5.0 }
+      oxycodone: { oral: 1.5 }
+      oxymorphone: { oral: 3.0 }
+      tapentadol: { oral: 0.4 }
+      tramadol: { oral: 0.2 }
+    excluded:
+      methadone: Methadone conversion is nonlinear and dose dependent with a long, variable half life. Specialist conversion only.
+      fentanyl: Transdermal and parenteral fentanyl require product specific conversion. Automated conversion is not supported.
+      buprenorphine: Partial agonist with ceiling effects. Automated conversion is not supported.
+      levorphanol: Long half life with accumulation risk. Specialist conversion only.
+
+  - id: systemic_corticosteroids
+    type: ratio
+    title: Systemic glucocorticoids, equivalent anti inflammatory dose
+    unit: mg
+    reference: >-
+      Liu D, Ahmet A, Ward L, et al. A practical guide to the monitoring and management of the
+      complications of systemic corticosteroid therapy. Allergy Asthma Clin Immunol 2013;9:30, Table 1.
+    reference_url: https://doi.org/10.1186/1710-1492-9-30
+    warnings:
+      - Equivalence is for glucocorticoid potency only. Mineralocorticoid activity and duration of action differ.
+      - Hydrocortisone and cortisone carry clinically relevant mineralocorticoid activity; dexamethasone and betamethasone carry almost none.
+    members:
+      cortisone: { oral: 25 }
+      hydrocortisone: { oral: 20, intravenous: 20, injection: 20 }
+      prednisone: { oral: 5 }
+      prednisolone: { oral: 5 }
+      methylprednisolone: { oral: 4, intravenous: 4, injection: 4 }
+      triamcinolone: { oral: 4 }
+      dexamethasone: { oral: 0.75, intravenous: 0.75, injection: 0.75 }
+      betamethasone: { oral: 0.75 }
+
+  - id: loop_diuretics
+    type: ratio
+    title: Loop diuretics, approximate natriuretic equivalence
+    unit: mg
+    reference: >-
+      Heidenreich PA, Bozkurt B, Aguilar D, et al. 2022 AHA/ACC/HFSA Guideline for the Management of
+      Heart Failure. Circulation 2022;145:e895 to e1032, diuretic dosing table; oral furosemide 40 mg
+      approximates bumetanide 1 mg and torsemide 20 mg, with oral furosemide bioavailability of about 50 percent.
+    reference_url: https://doi.org/10.1161/CIR.0000000000001063
+    warnings:
+      - Furosemide oral bioavailability is variable (roughly 10 to 90 percent). Monitor urine output, weight, electrolytes and renal function after switching.
+      - Equivalence is approximate and less reliable at high doses or in advanced chronic kidney disease.
+    members:
+      furosemide: { oral: 40, intravenous: 20, injection: 20 }
+      bumetanide: { oral: 1, intravenous: 1, injection: 1 }
+      torsemide: { oral: 20, intravenous: 20 }
+      ethacrynic acid: { oral: 50 }
+
+  - id: proton_pump_inhibitors
+    type: ratio
+    title: Proton pump inhibitors, standard (full) dose equivalence
+    unit: mg
+    reference: >-
+      National Institute for Health and Care Excellence. Gastro oesophageal reflux disease and
+      dyspepsia in adults: investigation and management (CG184), 2014, updated 2019, table of PPI doses.
+    reference_url: https://www.nice.org.uk/guidance/cg184
+    warnings:
+      - Equivalence refers to standard healing dose. Indication specific dosing (for example Helicobacter pylori regimens or Zollinger Ellison syndrome) differs.
+    members:
+      omeprazole: { oral: 20 }
+      esomeprazole: { oral: 20 }
+      lansoprazole: { oral: 30 }
+      pantoprazole: { oral: 40, intravenous: 40 }
+      rabeprazole: { oral: 20 }
+      dexlansoprazole: { oral: 30 }
+
+  - id: statin_intensity
+    type: band
+    title: Statins, LDL cholesterol lowering intensity bands (daily dose)
+    unit: mg
+    reference: >-
+      Grundy SM, Stone NJ, Bailey AL, et al. 2018 AHA/ACC Guideline on the Management of Blood
+      Cholesterol. Circulation 2019;139:e1082 to e1143, Table 3 (high, moderate and low intensity statin therapy).
+    reference_url: https://doi.org/10.1161/CIR.0000000000000625
+    warnings:
+      - Bands describe expected LDL C reduction (high at least 50 percent, moderate 30 to 49 percent, low under 30 percent), not milligram equivalence.
+      - Check interacting medicines and renal dose limits (for example rosuvastatin in severe renal impairment) before switching.
+    members:
+      atorvastatin: { high: [40, 80], moderate: [10, 20] }
+      rosuvastatin: { high: [20, 40], moderate: [5, 10] }
+      simvastatin: { moderate: [20, 40], low: [10, 10] }
+      pravastatin: { moderate: [40, 80], low: [10, 20] }
+      lovastatin: { moderate: [40, 80], low: [20, 20] }
+      fluvastatin: { moderate: [80, 80], low: [20, 40] }
+      pitavastatin: { moderate: [1, 4] }
+
+  - id: benzodiazepines
+    type: ratio
+    title: Benzodiazepines, approximate oral equivalent doses
+    unit: mg
+    reference: >-
+      Ashton CH. Benzodiazepines: How They Work and How to Withdraw (the Ashton Manual), 2002,
+      table of approximate equivalent doses to diazepam 10 mg.
+    reference_url: https://www.benzo.org.uk/manual/bzcha01.htm
+    warnings:
+      - Equivalence is approximate and individual responses vary widely. Half lives differ by an order of magnitude.
+      - Not applicable to acute seizure or agitation protocols. Consider respiratory risk with opioids or other sedatives.
+    members:
+      diazepam: { oral: 10 }
+      lorazepam: { oral: 1 }
+      alprazolam: { oral: 0.5 }
+      clonazepam: { oral: 0.5 }
+      chlordiazepoxide: { oral: 25 }
+      oxazepam: { oral: 20 }
+      temazepam: { oral: 20 }
