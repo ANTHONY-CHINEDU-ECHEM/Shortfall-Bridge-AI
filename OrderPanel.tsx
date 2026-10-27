@@ -1,7 +1,8 @@
 import { forwardRef, useId, useState } from "react";
-import type { HepaticImpairment, SubstitutionRequest } from "../types";
+import type { CreatinineUnit, HepaticImpairment, PatientContext, Sex, SubstitutionRequest } from "../types";
 import { ChipInput } from "./ChipInput";
 import { DrugCombobox } from "./DrugCombobox";
+import { RenalPreview } from "./RenalPreview";
 
 export interface OrderState {
   drug: string;
@@ -13,6 +14,11 @@ export interface OrderState {
   frequency: string;
   age: string;
   weight: string;
+  height: string;
+  sex: Sex;
+  scr: string;
+  scrUnit: CreatinineUnit;
+  dialysis: boolean;
   crcl: string;
   egfr: string;
   hepatic: HepaticImpairment;
@@ -26,13 +32,24 @@ export interface OrderState {
 
 export const EMPTY_ORDER: OrderState = {
   drug: "", route: "", dosageForm: "", strength: "", doseAmount: "", doseUnit: "mg", frequency: "",
-  age: "", weight: "", crcl: "", egfr: "", hepatic: "none", pregnant: false, breastfeeding: false,
+  age: "", weight: "", height: "", sex: "unknown", scr: "", scrUnit: "mg/dL", dialysis: false,
+  crcl: "", egfr: "", hepatic: "none", pregnant: false, breastfeeding: false,
   allergies: [], meds: [], question: "", includeAltClass: true,
 };
 
 const ROUTES = ["", "oral", "intravenous", "intramuscular", "subcutaneous", "inhalation", "topical", "transdermal", "ophthalmic"];
 
 const num = (s: string) => (s.trim() === "" ? null : Number(s));
+
+export function toPatient(o: OrderState): PatientContext {
+  return {
+    age_years: num(o.age), weight_kg: num(o.weight), height_cm: num(o.height), sex: o.sex,
+    serum_creatinine: num(o.scr), serum_creatinine_unit: o.scrUnit, on_dialysis: o.dialysis,
+    creatinine_clearance_ml_min: num(o.crcl), egfr_ml_min_1_73m2: num(o.egfr),
+    hepatic_impairment: o.hepatic, pregnant: o.pregnant, breastfeeding: o.breastfeeding,
+    allergies: o.allergies, current_medications: o.meds,
+  };
+}
 
 export function toRequest(o: OrderState): SubstitutionRequest {
   const amount = num(o.doseAmount);
@@ -42,12 +59,7 @@ export function toRequest(o: OrderState): SubstitutionRequest {
     dosage_form: o.dosageForm.trim() || null,
     strength: o.strength.trim() || null,
     current_dose: amount ? { amount, unit: o.doseUnit, frequency: o.frequency.trim() || null } : null,
-    patient: {
-      age_years: num(o.age), weight_kg: num(o.weight),
-      creatinine_clearance_ml_min: num(o.crcl), egfr_ml_min_1_73m2: num(o.egfr),
-      hepatic_impairment: o.hepatic, pregnant: o.pregnant, breastfeeding: o.breastfeeding,
-      allergies: o.allergies, current_medications: o.meds,
-    },
+    patient: toPatient(o),
     clinical_question: o.question.trim() || null,
     max_candidates: 8,
     include_alternative_classes: o.includeAltClass,
@@ -65,6 +77,9 @@ export function validate(o: OrderState): Partial<Record<keyof OrderState, string
   range("doseAmount", o.doseAmount, 0.001, 100000, "Dose");
   range("age", o.age, 0, 125, "Age");
   range("weight", o.weight, 0.3, 400, "Weight");
+  range("height", o.height, 30, 250, "Height");
+  range("scr", o.scr, 0.05, o.scrUnit === "mg/dL" ? 30 : 2500, `Serum creatinine (${o.scrUnit})`);
+  if (o.scrUnit === "mg/dL" && Number(o.scr) > 30) e.scr = "That looks like micromol/L. Switch the unit to umol/L.";
   range("crcl", o.crcl, 0, 250, "Creatinine clearance");
   range("egfr", o.egfr, 0, 250, "eGFR");
   if (o.pregnant && o.age && Number(o.age) < 10) e.age = "Check age: pregnancy is recorded for a patient under 10.";
@@ -90,7 +105,8 @@ export const OrderPanel = forwardRef<HTMLInputElement, Props>(function OrderPane
     errors[k] ? <p className="field__error" id={`${id}-${k}-err`} role="alert">{errors[k]}</p> : null;
   const describe = (k: keyof OrderState) => (errors[k] ? `${id}-${k}-err` : undefined);
   const contextCount =
-    [order.age, order.weight, order.crcl, order.egfr].filter(Boolean).length +
+    [order.age, order.weight, order.height, order.scr, order.crcl, order.egfr].filter(Boolean).length +
+    (order.sex !== "unknown" ? 1 : 0) + (order.dialysis ? 1 : 0) +
     (order.hepatic !== "none" ? 1 : 0) + (order.pregnant ? 1 : 0) + (order.breastfeeding ? 1 : 0) +
     order.allergies.length + order.meds.length;
 
@@ -176,6 +192,41 @@ export const OrderPanel = forwardRef<HTMLInputElement, Props>(function OrderPane
             </div>
             <div className="row-2">
               <div className="field">
+                <label htmlFor={`${id}-ht`}>Height, cm</label>
+                <input id={`${id}-ht`} inputMode="decimal" value={order.height} aria-invalid={!!errors.height || undefined}
+                  aria-describedby={describe("height")} onChange={(e) => set("height", e.target.value)} />
+                {err("height")}
+              </div>
+              <div className="field">
+                <label htmlFor={`${id}-sex`}>Sex</label>
+                <select id={`${id}-sex`} value={order.sex} onChange={(e) => set("sex", e.target.value as Sex)}>
+                  <option value="unknown">Not entered</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </div>
+            </div>
+            <p className="field__hint">Sex and height are used only by the renal equations (Cockcroft-Gault, CKD-EPI 2021).</p>
+            <div className="field">
+              <span className="field__label" id={`${id}-scr-l`}>Serum creatinine</span>
+              <div className="dose dose--2" role="group" aria-labelledby={`${id}-scr-l`}>
+                <input aria-label="Serum creatinine value" inputMode="decimal" value={order.scr}
+                  aria-invalid={!!errors.scr || undefined} aria-describedby={describe("scr")}
+                  onChange={(e) => set("scr", e.target.value)} />
+                <select aria-label="Serum creatinine unit" value={order.scrUnit}
+                  onChange={(e) => set("scrUnit", e.target.value as CreatinineUnit)}>
+                  <option value="mg/dL">mg/dL</option>
+                  <option value="umol/L">umol/L</option>
+                </select>
+              </div>
+              {err("scr")}
+            </div>
+            <label className="check">
+              <input type="checkbox" checked={order.dialysis} onChange={(e) => set("dialysis", e.target.checked)} /> On dialysis
+            </label>
+            <RenalPreview order={order} />
+            <div className="row-2">
+              <div className="field">
                 <label htmlFor={`${id}-crcl`}>CrCl, mL/min</label>
                 <input id={`${id}-crcl`} inputMode="decimal" value={order.crcl} aria-invalid={!!errors.crcl || undefined}
                   aria-describedby={describe("crcl")} onChange={(e) => set("crcl", e.target.value)} />
@@ -188,7 +239,7 @@ export const OrderPanel = forwardRef<HTMLInputElement, Props>(function OrderPane
                 {err("egfr")}
               </div>
             </div>
-            <p className="field__hint">Most US labels dose by creatinine clearance, so CrCl is used when both are entered.</p>
+            <p className="field__hint">A measured CrCl or eGFR overrides the estimate. Most US labels dose by creatinine clearance, so CrCl is used when both are entered.</p>
             <div className="field">
               <label htmlFor={`${id}-hep`}>Hepatic impairment</label>
               <select id={`${id}-hep`} value={order.hepatic} onChange={(e) => set("hepatic", e.target.value as HepaticImpairment)}>

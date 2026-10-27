@@ -6,11 +6,17 @@ const PAGE = 25;
 
 interface Props {
   onFindAlternatives: (r: ShortageRecord) => void;
+  initialQuery?: string;
 }
 
-export function ShortageMonitor({ onFindAlternatives }: Props) {
+function daysListed(r: ShortageRecord): number | null {
+  if (!r.initial_posting_date || r.status !== "Current") return null;
+  return Math.max(0, Math.round((Date.now() - new Date(r.initial_posting_date).getTime()) / 86_400_000));
+}
+
+export function ShortageMonitor({ onFindAlternatives, initialQuery = "" }: Props) {
   const [status, setStatus] = useState("Current");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [query, setQuery] = useState("");
   const [offset, setOffset] = useState(0);
   const [data, setData] = useState<{ items: ShortageRecord[]; total: number } | null>(null);
@@ -38,7 +44,7 @@ export function ShortageMonitor({ onFindAlternatives }: Props) {
     <div className="page">
       <header className="page__head">
         <h1>Shortage monitor</h1>
-        <p className="muted">Presentation level entries from the FDA Drug Shortages database, refreshed by the ingestion job.</p>
+        <p className="muted">Presentation level entries from the FDA Drug Shortages database. See <a href="#/insights">Insights</a> for the overall picture.</p>
       </header>
       <div className="filters" role="search">
         <div className="field">
@@ -86,7 +92,10 @@ export function ShortageMonitor({ onFindAlternatives }: Props) {
                   <td>{r.company_name ?? "Not stated"}</td>
                   <td><span className={`status-pill status-pill--${r.status.replace(/\s/g, "").toLowerCase()}`}>{r.status}</span></td>
                   <td>{r.shortage_reason ?? <span className="muted">Not stated</span>}</td>
-                  <td className="nowrap">{r.update_date ? new Date(r.update_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}</td>
+                  <td className="nowrap">
+                    {r.update_date ? new Date(r.update_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                    {daysListed(r) !== null && <span className="table__secondary">listed {daysListed(r)} days</span>}
+                  </td>
                   <td>
                     <button className="btn btn--quiet btn--small" onClick={() => onFindAlternatives(r)}>
                       Find alternatives<span className="visually-hidden"> for {r.generic_name}</span>
