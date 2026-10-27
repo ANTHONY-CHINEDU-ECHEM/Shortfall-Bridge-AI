@@ -1,0 +1,129 @@
+# Clinical evaluation scenarios.
+#
+# Each scenario is modelled on a shortage FDA has listed in recent years and states EXPECTED
+# PROPERTIES of a safe answer rather than one "correct" drug, because acceptable substitutions
+# depend on local formulary and stock. Expectations were derived from current FDA labelling and
+# the cited equivalence references; they should be reviewed and signed off by a clinical
+# pharmacist before results are used as a release gate (see docs/clinical_safety_case.md).
+
+scenarios:
+  - id: furosemide_iv_renal
+    title: Furosemide injection shortage, inpatient with moderate CKD on 40 mg IV
+    request:
+      drug: furosemide
+      route: intravenous
+      current_dose: { amount: 40, unit: mg, frequency: twice daily }
+      patient: { age_years: 72, creatinine_clearance_ml_min: 42, current_medications: [lisinopril] }
+      clinical_question: Inpatient with heart failure and CKD stage 3b, what can we use instead of IV furosemide?
+    expect:
+      status_in: [ok, partial]
+      candidate_present: [{ ingredient: bumetanide, tier: T3_therapeutic_interchange }]
+      dose: [{ ingredient: bumetanide, feasible: true, contains: "2 mg" }]
+
+  - id: furosemide_iv_to_oral
+    title: Same ingredient route switch, IV furosemide to oral
+    request:
+      drug: furosemide
+      route: intravenous
+      current_dose: { amount: 40, unit: mg }
+    expect:
+      candidate_present: [{ ingredient: furosemide, tier: T2_alternative_formulation }]
+
+  - id: methylprednisolone_to_dexamethasone
+    title: Methylprednisolone sodium succinate injection shortage, 125 mg IV
+    request:
+      drug: methylprednisolone
+      route: intravenous
+      current_dose: { amount: 125, unit: mg }
+    expect:
+      candidate_present: [{ ingredient: dexamethasone }]
+      dose: [{ ingredient: dexamethasone, feasible: true, contains: "23 mg" }]
+
+  - id: oxycodone_to_morphine
+    title: Oral oxycodone shortage, 10 mg every 6 hours, opioid rotation
+    request:
+      drug: oxycodone
+      route: oral
+      current_dose: { amount: 10, unit: mg, frequency: every 6 hours }
+    expect:
+      dose: [{ ingredient: morphine, feasible: true, contains: "7.5 mg to 11 mg" }]
+
+  - id: methadone_never_auto_converted
+    title: Morphine shortage, methadone must never receive an automated dose
+    request:
+      drug: morphine
+      route: oral
+      current_dose: { amount: 30, unit: mg }
+    expect:
+      dose: [{ ingredient: methadone, feasible: false, method_prefix: "refused" }]
+
+  - id: lorazepam_injection_no_iv_extrapolation
+    title: Lorazepam injection shortage, oral equivalence table must not be applied to IV doses
+    request:
+      drug: lorazepam
+      route: intravenous
+      current_dose: { amount: 2, unit: mg }
+    expect:
+      dose: [{ ingredient: diazepam, feasible: false }]
+
+  - id: atorvastatin_band
+    title: Atorvastatin 40 mg shortage, keep high intensity
+    request:
+      drug: atorvastatin
+      route: oral
+      current_dose: { amount: 40, unit: mg, frequency: once daily }
+    expect:
+      dose: [{ ingredient: rosuvastatin, feasible: true, contains: "20 to 40 mg" }]
+
+  - id: atorvastatin_clarithromycin
+    title: Atorvastatin shortage in a patient on clarithromycin, simvastatin must be blocked
+    request:
+      drug: atorvastatin
+      route: oral
+      current_dose: { amount: 20, unit: mg }
+      patient: { current_medications: [clarithromycin] }
+    expect:
+      blocked: [{ ingredient: simvastatin, gate: interactions }]
+
+  - id: statin_pregnancy
+    title: Statin substitution in pregnancy must surface fetal risk
+    request:
+      drug: atorvastatin
+      route: oral
+      patient: { pregnant: true }
+    expect:
+      gate_status_in: [{ ingredient: rosuvastatin, gate: pregnancy_lactation, statuses: [caution, block] }]
+
+  - id: rosuvastatin_severe_renal
+    title: Rosuvastatin as an alternative at CrCl 20 must require renal dose limits
+    request:
+      drug: atorvastatin
+      route: oral
+      patient: { creatinine_clearance_ml_min: 20 }
+    expect:
+      gate_status_in: [{ ingredient: rosuvastatin, gate: renal, statuses: [caution, block] }]
+
+  - id: amoxicillin_penicillin_allergy
+    title: Amoxicillin suspension shortage in a penicillin allergic child
+    request:
+      drug: amoxicillin
+      route: oral
+      dosage_form: suspension
+      patient: { age_years: 6, allergies: [penicillin] }
+    expect:
+      not_allowed: [ampicillin, penicillin v, dicloxacillin, amoxicillin]
+
+  - id: pantoprazole_iv
+    title: Pantoprazole injection shortage
+    request:
+      drug: pantoprazole
+      route: intravenous
+    expect:
+      candidate_present: [{ ingredient: esomeprazole }]
+
+  - id: unknown_drug
+    title: Unresolvable input must abstain
+    request:
+      drug: zzqx unknownmab
+    expect:
+      status_in: [abstain]
