@@ -8,6 +8,17 @@ Examples
     shortfall recommend "furosemide injection" --route intravenous --dose 40 --crcl 45
     shortfall evaluate
     shortfall serve
+
+v2 additions
+    SFB_STORE_BACKEND=live shortfall recommend furosemide --route intravenous   # no ingestion needed
+    shortfall renal --age 72 --weight 80 --height 175 --sex male --scr 150 --scr-unit umol/L
+    shortfall convert furosemide bumetanide 40 --from-route intravenous --to-route intravenous
+    shortfall batch ward_requests.json
+    shortfall fhir medication_request_bundle.json
+    shortfall insights
+    shortfall audit-verify
+    shortfall note r_0123456789abcdef0123
+    shortfall openapi --out openapi.json
 """
 
 from __future__ import annotations
@@ -19,6 +30,7 @@ from typing import Annotated
 import typer
 
 from .config import get_settings
+from .domain.enums import CreatinineUnit, HepaticImpairment, Sex
 from .domain.models import DoseInput, PatientContext, SubstitutionRequest
 from .embeddings import build_embedder
 from .ingestion import pipeline
@@ -133,12 +145,24 @@ def recommend(
     form: str | None = None,
     strength: str | None = None,
     dose: float | None = None,
+    unit: str = "mg",
     frequency: str | None = None,
     crcl: float | None = None,
+    egfr: float | None = None,
+    age: float | None = None,
+    weight: float | None = None,
+    height: float | None = None,
+    sex: Sex = Sex.UNKNOWN,
+    scr: Annotated[float | None, typer.Option(help="Serum creatinine")] = None,
+    scr_unit: CreatinineUnit = CreatinineUnit.MG_DL,
+    dialysis: bool = False,
+    hepatic: HepaticImpairment = HepaticImpairment.NONE,
     pregnant: bool = False,
+    breastfeeding: bool = False,
     allergy: Annotated[list[str] | None, typer.Option()] = None,
     med: Annotated[list[str] | None, typer.Option()] = None,
     question: str | None = None,
+    no_alt_class: bool = False,
 ) -> None:
     """Run one substitution request and print the JSON recommendation."""
     from .api.container import Container
@@ -147,12 +171,100 @@ def recommend(
     c = Container.build(settings, store=store)
     req = SubstitutionRequest(
         drug=drug, route=route, dosage_form=form, strength=strength,
-        current_dose=DoseInput(amount=dose, frequency=frequency) if dose else None,
-        patient=PatientContext(creatinine_clearance_ml_min=crcl, pregnant=pregnant,
-                               allergies=allergy or [], current_medications=med or []),
-        clinical_question=question,
+        current_dose=DoseInput(amount=dose, unit=unit, frequency=frequency) if dose else None,
+        patient=PatientContext(
+            creatinine_clearance_ml_min=crcl, egfr_ml_min_1_73m2=egfr, age_years=age, weight_kg=weight,
+            height_cm=height, sex=sex, serum_creatinine=scr, serum_creatinine_unit=scr_unit, on_dialysis=dialysis,
+            hepatic_impairment=hepatic, pregnant=pregnant, breastfeeding=breastfeeding,
+            allergies=allergy or [], current_medications=med or [],
+        ),
+        clinical_question=question, include_alternative_classes=not no_alt_class,
     )
     typer.echo(c.service.recommend(req).model_dump_json(indent=2))
+
+
+@app.command()
+def renal(
+    age: Annotated[float, typer.Option(help="Age in years")], weight: float | None = None, height: float | None = None, sex: Sex = Sex.UNKNOWN,
+    scr: float | None = None, scr_unit: CreatinineUnit = CreatinineUnit.MG_DL, dialysis: bool = False,
+) -> None:
+    """Estimate renal function (Cockcroft-Gault, CKD-EPI 2021 or bedside Schwartz) as the engine would."""
+    from .clinical.renal import estimate_renal_function
+
+    p = PatientContext(age_years=age, weight_kg=weight, height_cm=height, sex=sex, serum_creatinine=scr,
+                       serum_creatinine_unit=scr_unit, on_dialysis=dialysis)
+    typer.echo(estimate_renal_function(p).model_dump_json(indent=2))
+
+
+@app.command()
+def convert(
+    from_drug: str, to_drug: str, dose: float, unit: str = "mg", frequency: str | None = None,
+    from_route: str | None = None, to_route: str | None = None,
+) -> None:
+    """Convert a dose with the published equivalence tables (no knowledge base needed)."""
+    from .engine.equivalence import convert as do_convert
+
+    dc = do_convert(from_drug, to_drug, DoseInput(amount=dose, unit=unit, frequency=frequency), from_route, to_route)
+    if dc is None:
+        typer.echo(f"No published equivalence table relates {from_drug} and {to_drug}.", err=True)
+        raise typer.Exit(code=2)
+    typer.echo(dc.model_dump_json(indent=2))
+
+
+def _handlers():
+    from .api.container import Container
+    from .api.handlers import ApiHandlers
+
+    settings, store = _ctx()
+    return ApiHandlers(Container.build(settings, store=store, online_resolution=settings.store_backend != "live"))
+
+
+@app.command()
+def batch(path: Path) -> None:
+    """Evaluate a JSON file of requests (a list, or {"requests": [...], "labels": [...]})."""
+    from .api.schemas import BatchRequest
+
+    raw = json.loads(path.read_text())
+    body = BatchRequest.model_validate({"requests": raw} if isinstance(raw, list) else raw)
+    out = _handlers().batch(body)
+    typer.echo(json.dumps(out.summary, indent=2, default=str))
+
+
+@app.command()
+def fhir(path: Path, order_id: str | None = None) -> None:
+    """Map a FHIR R4 Bundle or MedicationRequest and run the substitution."""
+    out = _handlers().fhir_substitution(json.loads(path.read_text()), order_id)
+    typer.echo(out.model_dump_json(indent=2))
+
+
+@app.command()
+def insights() -> None:
+    """Shortage landscape analytics (categories, reasons, durations, timeline)."""
+    typer.echo(json.dumps(_handlers().insights(), indent=2, default=str))
+
+
+@app.command("audit-verify")
+def audit_verify() -> None:
+    """Verify the hash chained audit log. Exits non zero when tampering is detected."""
+    report = _handlers().audit_verify()
+    typer.echo(report.model_dump_json(indent=2))
+    if not report.ok:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def note(request_id: str, format: str = "markdown") -> None:
+    """Render the clinical note for a stored recommendation."""
+    typer.echo(_handlers().note(request_id, format))
+
+
+@app.command()
+def openapi(out: Path = Path("openapi.json")) -> None:
+    """Write the OpenAPI schema without starting the server."""
+    from .api.app import create_app
+
+    out.write_text(json.dumps(create_app().openapi(), indent=2))
+    typer.echo(f"OpenAPI schema written to {out}")
 
 
 @app.command()

@@ -7,7 +7,11 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+except ImportError:  # pragma: no cover - exercised by the browser runtime and minimal installs
+    from ._settings_fallback import BaseSettings, SettingsConfigDict  # type: ignore[assignment]
 
 
 class Settings(BaseSettings):
@@ -19,7 +23,7 @@ class Settings(BaseSettings):
     log_json: bool = True
 
     # Storage
-    store_backend: Literal["postgres", "memory"] = "postgres"
+    store_backend: Literal["postgres", "memory", "live"] = "postgres"
     database_url: str = "postgresql+psycopg://shortfall:shortfall@localhost:5432/shortfall"
     data_dir: Path = Path("./data")
     snapshot_path: Path | None = None  # memory backend: JSONL snapshot to load on startup
@@ -34,6 +38,14 @@ class Settings(BaseSettings):
     http_timeout_s: float = 60.0
     http_max_retries: int = 5
     rxnav_requests_per_second: float = 15.0  # NLM asks clients to stay under 20 rps
+
+    # Live openFDA store (SFB_STORE_BACKEND=live): no ingestion, data fetched per request and cached
+    live_label_limit: int = Field(default=8, ge=1, le=100)  # labels fetched per ingredient
+    live_max_class_members: int = Field(default=8, ge=0, le=40)  # same class alternatives hydrated per class
+    live_max_partners: int = Field(default=8, ge=0, le=20)  # equivalence table partners hydrated
+    live_label_ttl_s: float = 7 * 24 * 3600.0
+    live_shortage_ttl_s: float = 6 * 3600.0
+    live_max_workers: int = Field(default=6, ge=1, le=16)
 
     # Embeddings
     embedding_backend: Literal["sentence_transformers", "hashing"] = "sentence_transformers"
@@ -66,6 +78,10 @@ class Settings(BaseSettings):
     alt_class_min_similarity: float | None = None
 
     @property
+    def api_key_set(self) -> frozenset[str]:
+        return frozenset(k.strip() for k in self.api_keys.split(",") if k.strip())
+
+    @property
     def effective_alt_class_min_similarity(self) -> float:
         if self.alt_class_min_similarity is not None:
             return self.alt_class_min_similarity
@@ -74,6 +90,13 @@ class Settings(BaseSettings):
     # API
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:8080"])
     api_rate_limit_per_minute: int = 120
+    # Comma separated accepted API keys. Empty disables authentication (development only).
+    api_keys: str = ""
+    # Use X-Forwarded-For for rate limiting when the API sits behind a trusted reverse proxy (nginx in compose).
+    trust_proxy_headers: bool = False
+    max_body_bytes: int = 512 * 1024
+    public_app_url: str | None = None  # used in CDS Hooks card links back to the workbench
+    cds_always_card: bool = False  # also return an info card when the ordered drug is not in shortage
 
 
 @lru_cache(maxsize=1)

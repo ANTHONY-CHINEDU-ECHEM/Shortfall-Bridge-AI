@@ -51,3 +51,35 @@ def store(settings: Settings, label_records: list[dict]) -> MemoryStore:
 def container(settings: Settings, store: MemoryStore) -> Container:
     return Container.build(settings, store=store, embedder=HashingEmbedder(settings.embedding_dim),
                            online_resolution=False)
+
+
+def make_label(
+    set_id: str, substance: str, sections: dict[str, str], epc: str | None = None, route: str = "ORAL",
+    manufacturer: str = "Test Labs", effective: str = "20250101", product_type: str = "HUMAN PRESCRIPTION DRUG",
+) -> dict:
+    """An openFDA shaped label record for tests that need label text the shared fixtures do not carry."""
+    return {
+        "set_id": set_id, "id": f"{set_id}-v", "version": "1", "effective_time": effective,
+        "openfda": {
+            "generic_name": [substance.upper()], "brand_name": [substance.title()],
+            "manufacturer_name": [manufacturer], "substance_name": [substance.upper()], "route": [route],
+            "product_type": [product_type], "rxcui": [], "pharm_class_epc": [epc] if epc else [], "pharm_class_moa": [],
+        },
+        **{k: [v] for k, v in sections.items()},
+    }
+
+
+def build_store(settings: Settings, records: list[dict], shortages: list[dict] | None = None,
+                orange_book: Path | None = None) -> MemoryStore:
+    s = MemoryStore(dim=settings.embedding_dim)
+    ingest_label_records(s, HashingEmbedder(settings.embedding_dim), settings, records)
+    if shortages is not None:
+        s.replace_shortages([r for r in (parse_shortage_record(x) for x in shortages) if r])
+    if orange_book is not None:
+        s.replace_orange_book(list(iter_products(orange_book)))
+    return s
+
+
+def build_container(settings: Settings, store: MemoryStore) -> Container:
+    return Container.build(settings, store=store, embedder=HashingEmbedder(settings.embedding_dim),
+                           online_resolution=False)
