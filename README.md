@@ -5,7 +5,7 @@
 Shortfall Bridge AI helps a pharmacist or prescriber answer one urgent question safely: **this medicine is unavailable, what can this patient have instead, at what dose, and how do I know it is safe?** It reads the entire United States drug labelling corpus, the FDA Drug Shortages database, the Orange Book of therapeutic equivalence and the NLM drug class hierarchy. It proposes ranked alternatives across four substitution tiers and screens every option through eight patient specific safety gates. Every finding comes with the official label sentence that justifies it.
 
 <p align="center">
-  <img width="2880" height="2000" alt="workbench_light" src="https://github.com/user-attachments/assets/09b8dac8-160f-4951-b778-12a07483bead" />
+  <img width="2880" height="2000" alt="workbench_light" src="https://github.com/user-attachments/assets/7433a2d2-27bb-4a4f-b8f9-1d9b8ba6b39b" />
 </p>
 
 ## 1. Project brief
@@ -15,6 +15,14 @@ Drug shortages are no longer an occasional supply hiccup. In the United States, 
 Those decisions are where harm enters. A substitution is never just a different product. It can change dose because potency differs, change route because only an oral form is available, change renal handling, introduce an interaction with a medicine the patient already takes, cross a patient's allergy through a related class, or carry a boxed warning the original drug did not have. Published investigations of shortage related medication errors repeatedly describe the same failure modes: wrong dose after an unfamiliar conversion, a contraindication missed in a rushed review, and an alternative that is itself about to run out. The knowledge needed to avoid every one of these errors already exists in public, authoritative sources. It is simply scattered across a hundred thousand labels and several government databases that do not talk to each other.
 
 Generic chat assistants are the wrong tool for this job. A language model asked "what can I use instead of IV furosemide" will produce fluent text, but it cannot prove where a dose came from, it can silently invent a threshold, and it has no reliable knowledge of which products are short this week. Shortfall Bridge AI is designed around the opposite principle. **A deterministic engine makes every clinical decision from structured data and published references. Retrieval supplies the exact label text that justifies each decision. A language model, when enabled, only narrates what the engine already decided, and a verifier rejects any sentence whose numbers, drug names or citations it cannot trace.** When the evidence is insufficient the system abstains and says why. The result is a tool a clinical safety officer can reason about, a pharmacist can audit line by line, and an engineer can test exhaustively.
+
+Version 2 makes the system 
+
+**Deployable in minutes instead of hours**
+**demonstrable from a static Netlify site with the real engine on live FDA data**, **plugged into prescribing workflows** through FHIR and CDS Hooks, and **clinically safer**: it fixes ranking defects, estimates renal function from creatinine, checks label dose ceilings and duplicate therapy, and makes the audit trail
+tamper evident. Everything is covered by tests: **233 backend tests (87 in v1), with all PostgreSQL
+tests actually executed**, plus a **21 check browser end to end test** of the hosted demo.
+
 
 <a id="capabilities"></a>
 ## 2. What the system does
@@ -30,6 +38,26 @@ Generic chat assistants are the wrong tool for this job. A language model asked 
 <tr><td>Audit trail</td><td>Every request and response stored with data source versions and stage timings, retrievable by reference number.</td></tr>
 <tr><td>Clinical workbench</td><td>Accessible React interface with blister strip safety display, evidence drawer in label typography, shortage monitor and an acknowledgement step before notes are copied.</td></tr>
 </table>
+
+
+| Area | v1 | v2 |
+|---|---|---|
+| Time to first recommendation | multi hour bulk ingestion, about 20 GB | **seconds**: `make live`, or the Netlify demo with no server at all |
+| Hosted demo | none | **static Netlify site running the real Python engine in the browser** on live openFDA data |
+| Supply gate | penalised oral options when only the injection was short, and said so falsely | scoped to each option's own route and manufacturers |
+| Route handling | an oral only drug could outrank an IV option for an IV patient | route availability recorded, mismatch penalised, conversion targets the real route |
+| Renal checks | Needs data unless CrCl was typed in | **Cockcroft-Gault, CKD-EPI 2021 and bedside Schwartz** from creatinine, with dialysis handling |
+| Dose safety | conversion only | **daily total and labelled maximum daily dose ceiling** with citation |
+| Interactions | same ingredient duplicates only | **same class duplicate therapy**; the drug being replaced no longer flags itself |
+| Allergy | "sulfamethoxazole" was rewritten into a nonsense term; plural label wording missed | class terms mapped correctly; plural aware; **warnings section cross sensitivity** scanned |
+| Ranking transparency | the docs promised visible score terms; only a total was returned | **every additive term returned** and shown as "Why this rank" |
+| EHR integration | none | **FHIR R4 input** and a **CDS Hooks 2.0** service with replace order suggestions |
+| Audit | plain rows | **SHA-256 hash chain** with verification, notes carry the hash |
+| Feedback loop | roadmap item | **pharmacist agree, override and reject** with reasons and agreement analytics |
+| Analytics | shortage list | **Insights dashboard**: categories, reasons, routes, durations, timeline |
+| Throughput | one request | **batch endpoint** for a whole ward (up to 25 patients) |
+| Security | per IP rate limit only (every user behind nginx shared one bucket) | API keys, proxy aware limits, body size limit, security headers |
+| Packaging | `pip install -e` and the API Docker build both failed | fixed |
 
 <a id="data"></a>
 ## 3. Data foundation
@@ -406,6 +434,17 @@ Each major decision below records the alternatives considered and the reason for
 <tr><td><b>Provider neutral LLM client over HTTP</b></td><td>Vendor SDKs</td><td>One OpenAI compatible client covers OpenRouter, vLLM, Ollama and gateways; a second covers the Anthropic Messages API. No SDK lock in, no additional dependency surface.</td></tr>
 </table>
 
+DEPLOYED TO NETLIFY
+
+1. Add new site, Import an existing project**, choose the repository. Accept the detected
+   settings; `netlify.toml` provides the base directory, build command, publish directory, edge function
+   and security headers.
+3. Optional: add the environment variable `OPENFDA_API_KEY` (free from open.fda.gov) to lift the
+   anonymous limit of about 1,000 openFDA requests a day per IP address.
+4. Your demo is live at `https://<site-name>.netlify.app`. Rename the site to, for example,
+   `shortfall-bridge-ai` under **Site configuration, Change site name**.
+
+
 <a id="clinical"></a>
 ## 6. Clinical logic in detail
 
@@ -418,6 +457,64 @@ Each major decision below records the alternatives considered and the reason for
 <tr><td>T3 Therapeutic interchange</td><td>Different ingredient in the same EPC class, ATC level 4 class or published equivalence table</td><td>Label EPC classes, RxClass ATC and EPC links, equivalence tables</td><td>Converted when both drugs share a table and route</td></tr>
 <tr><td>T4 Alternative class</td><td>Different class with overlapping labelled indications</td><td>Indication passages agreeing in dense and lexical retrieval above a calibrated similarity floor</td><td>Never converted; flagged for specialist review</td></tr>
 </table>
+
+
+Each defect was reproduced before it was fixed and now has a regression test.
+
+| # | Defect in v1 | Effect | Fix | Test |
+|---|---|---|---|---|
+| 1 | Supply gate ignored the candidate's own route. Oral furosemide was told "1 current FDA shortage entry... in the same route family" when only the injection was short | a false statement and a 0.22 penalty on the safest switch | gate scoped to the option's route family, inferred from openFDA routes or the shortage wording; T1 uses a lighter "market" caution when the proposed A rated makers are not the ones listed | `test_gates_v2.py::test_oral_formulation_not_penalised_for_injection_shortage` |
+| 2 | Route mismatch was not scored. For an IV request, oral only torsemide (0.72) outranked IV bumetanide (0.62), and got an "IV torsemide" dose although no IV label is indexed | wrong first choice for an IV only patient | `routes_available` and `route_match` per option, a 0.15 penalty, conversion to the route actually available with a route change warning | `test_route_mismatch_penalty_and_ordering` |
+| 3 | `sulfa` substitution ran inside other names: allergy "sulfamethoxazole" became "sulfonamide antibacterialmethoxazole" | class allergy matching silently corrupted | explicit class term map (sulfa, sulpha, sulfonamides, penicillins, NSAIDs and others) | `test_sulfa_allergen_does_not_corrupt_drug_names` |
+| 4 | Whole word matching missed plurals ("sulfonamides" in a contraindication) | contraindication missed | plural aware matching for allergy scans; warnings sections scanned for cross sensitivity | `test_sulfa_class_allergy_warns_from_label_text` |
+| 5 | The drug being replaced, if on the medication list, was "duplicate therapy" for its own T1 and T2 options | spurious caution on every same ingredient option | excluded and explained in the rationale | `test_replaced_drug_is_not_flagged_as_duplicate` |
+| 6 | Names with strengths did not resolve: "Furosemide 10 mg/mL injection" became "furosemide mg ml" | clinician input and EHR text abstained | strength and pack units stripped during resolution | `test_names_with_strengths_resolve` |
+| 7 | The README said every score term appears in the response; only the total did | ranking not explainable | `score_breakdown` on every option | `test_score_breakdown_sums_to_score` |
+| 8 | Rate limiting keyed on the client address behind nginx, so all clinicians shared one bucket of 120 a minute; the limiter dictionary grew without bound | outage under load, memory growth | proxy aware client key (opt in), idle key pruning | `test_rate_limit_uses_forwarded_client_when_trusted`, `test_limiter_prunes_idle_clients` |
+| 9 | `pyproject.toml` pointed `readme` at `../README.md`; modern setuptools refuses this and the API Dockerfile never copied it | `pip install -e` and `docker compose build` failed | package README added, Dockerfile copies it | CI install step |
+| 10 | Copying the note used `navigator.clipboard` with no fallback | silent failure on HTTP intranet hosts | textarea fallback | e2e |
+| 11 | Stage timings were stringified into `data_versions` | not machine readable | `timings_ms` field (old key kept for compatibility) | `test_response_carries_v2_fields` |
+
+New clinical capabilities
+
+**Renal function estimation** (`clinical/renal.py`). With age, sex, weight, height and serum creatinine
+(mg/dL or umol/L) the engine computes Cockcroft-Gault creatinine clearance using actual, ideal (Devine)
+or adjusted body weight by standard pharmacy rules, reports CKD-EPI 2021 (race free) alongside, and
+uses bedside Schwartz under 18. Dialysis is treated as end stage for every labelled threshold. Unknown
+sex takes the lower estimate; low creatinine in older adults, ages above 90 and missing height raise
+warnings; creatinine above 30 entered as mg/dL is refused as probable umol/L. A measured CrCl or eGFR
+always wins. The estimate, formula and weight used are returned in `renal`, stated in the summary and
+shown in the interface. Before this, renal checks stayed at Needs data unless a clearance was typed.
+
+**Dose ceilings** (`clinical/dosing.py`). Frequencies ("twice daily", "q8h", "every 6 hours", "tds",
+"weekly") become administrations per day; "as needed" deliberately does not. The suggested daily total
+is compared with labelled maximum daily doses extracted from Dosage and Administration ("maximum
+recommended daily dose", "do not exceed ... per day", "up to ... per day"), ignoring mg/kg and single
+dose limits. Exceeding the ceiling is flagged, cited, penalised and stated in the narrative.
+
+**Duplicate therapy across a class.** A patient already on simvastatin is flagged when rosuvastatin is
+proposed (shared EPC class or equivalence table), with the duplicate recorded in `facts`.
+
+**Structured gate facts.** Every gate result now carries `facts` (supply scope, renal value and
+thresholds, matched allergens, duplicates), so scoring and the interface no longer parse prose.
+
+**Six new evaluation scenarios** (19 total) for renal estimation, dialysis, duplicate therapy, the
+replaced drug, IV versus oral ranking and sulfonamide cross sensitivity, with new property checks
+(`renal_source`, `ranked_above`, `warnings_contain`, `gate_fact`) and a JUnit report for CI.
+
+Interoperability: FHIR R4 and CDS Hooks 2.0
+
+* `POST /api/v1/fhir/substitutions` maps a FHIR Bundle or MedicationRequest (order, dosage, timing,
+  route, Patient, LOINC creatinine, eGFR, clearance, weight, height, pregnancy, dialysis, allergies,
+  active medicines) and returns the recommendation plus a mapping report with the source of every value.
+* `GET /cds-services` and `POST /cds-services/{id}` implement **order-select** and **order-sign**. A
+  drug in current shortage returns one card with the top options, cautions, a Markdown table, a link
+  back to the stored result and **suggestions that replace the draft order** with the converted dose.
+  Drugs not in shortage return no card, to avoid alert fatigue.
+
+Details, mapping table and sandbox instructions: **[docs/fhir_cds_hooks.md](docs/fhir_cds_hooks.md)**.
+Examples: `docs/examples/fhir_bundle.json`, `docs/examples/cds_order_select.json`.
+
 
 ### 6.2 Safety gates
 
@@ -432,6 +529,22 @@ Each major decision below records the alternatives considered and the reason for
 <tr><td>Boxed warning</td><td>Does the drug carry one?</td><td>Never alone</td><td>Always, with the warning text shown</td></tr>
 <tr><td>Age</td><td>Is use limited in children or flagged in older adults?</td><td>Never alone</td><td>Paediatric effectiveness not established; strong geriatric statements</td></tr>
 </table>
+
+Governance: tamper evident audit, pharmacist review, notes
+
+* **Hash chained audit** (`store/ledger.py`): `record_hash = sha256(prev_hash || canonical record)`.
+  Editing or deleting any stored recommendation breaks the chain. `GET /api/v1/audit/verify`,
+  `shortfall audit-verify` (non zero exit on tampering) and the Method page verify it. PostgreSQL
+  serialises writers with an advisory lock and keeps v1 rows as "legacy, unchained".
+* **Pharmacist review**: `POST /api/v1/reviews` records agree, override or reject per option (a reason
+  is required for anything but agree), with the option's rank. `GET /api/v1/reviews/summary` reports
+  agreement overall, for the top option, by tier and rank, and the commonest override reasons. This is
+  the roadmap's "pharmacist review mode", and it produces labelled data for measuring the ranking.
+* **Clinical note export**: `GET /api/v1/audit/{id}/note?format=markdown|text` renders the stored
+  record (never a re-run) with options, doses, checks, evidence links, data versions, the audit hash
+  and a sign off line.
+* **Clinical safety case** extended with hazards H10 to H16 for the new behaviour.
+
 
 ### 6.3 Dose equivalence references
 
@@ -636,6 +749,118 @@ shortfall_bridge_ai/
   Makefile
 ```
 
+API, CLI and security
+
+New endpoints (full schema in `docs/openapi.json`):
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/substitutions/batch` | up to 25 requests with labels and a ward level summary |
+| GET | `/api/v1/shortages/insights` | shortage analytics |
+| POST | `/api/v1/renal/estimate` | renal estimate exactly as the engine computes it |
+| GET | `/api/v1/equivalence/tables` | the published equivalence tables |
+| POST | `/api/v1/equivalence/convert` | stand alone dose conversion |
+| GET | `/api/v1/audit/verify` | verify the audit hash chain |
+| GET | `/api/v1/audit/{id}/note` | Markdown or text clinical note |
+| POST, GET | `/api/v1/reviews`, `/api/v1/reviews/summary` | pharmacist review and analytics |
+| POST | `/api/v1/fhir/substitutions` | FHIR R4 input |
+| GET, POST | `/cds-services`, `/cds-services/{id}` | CDS Hooks 2.0 |
+
+New response fields (all additive, v1 clients are unaffected): `renal`, `warnings`, `timings_ms`,
+`engine_version`; per option `score_breakdown`, `manufacturers`, `routes_available`, `route_match`; per
+gate `facts`; per conversion `doses_per_day`, `suggested_daily_total`, `label_max_daily`,
+`ceiling_exceeded`, `ceiling_citations`, `from_route`, `to_route`. `/api/v1/meta` adds `store_mode`,
+`runtime`, `auth_required` and `features`.
+
+New CLI commands: `renal`, `convert`, `batch`, `fhir`, `insights`, `audit-verify`, `note`, `openapi`;
+`recommend` gains age, weight, height, sex, creatinine, dialysis, hepatic, breastfeeding and eGFR options.
+
+Security: `SFB_API_KEYS` (constant time comparison, `X-API-Key` or `Authorization: Bearer`; probes and
+docs stay open), `SFB_TRUST_PROXY_HEADERS` for per clinician limits behind nginx (set in compose),
+`SFB_MAX_BODY_BYTES` (413), `X-RateLimit-Remaining`, and CSP, frame, referrer, permissions and
+resource policy headers on every API response. The Netlify site ships a strict CSP without `unsafe-eval`.
+
+<a id="verification"></a>
+## 10. Verification
+
+All of the following were run for this release.
+
+| Check | Result |
+|---|---|
+| Backend unit and API tests, Python 3.13 | 223 passed |
+| Same suite on **Python 3.11** (the CI and Docker version) | 223 passed |
+| **PostgreSQL 16 + pgvector integration tests**, executed against a real database | 10 passed (5 v1 parity, 5 new: chain over JSONB, tamper via SQL, legacy rows, idempotent migration, reviews) |
+| Ruff lint, TypeScript typecheck, server and demo production builds | clean |
+| Engine inside **Pyodide 0.28.3** (WebAssembly) in Node | identical results to CPython |
+| **Browser end to end** (Chromium, production CSP, Web Worker, emulated edge proxy) | 21 of 21 checks |
+| Frontend in server mode against FastAPI on the live store | passed |
+| Clinical scenarios on the fixture corpus | 16 of 19 (the other 3 need drugs or label text the miniature fixtures lack; run `make eval` on a real corpus) |
+
+The end to end test (`frontend/e2e/demo.e2e.mjs`) covers engine boot, ranking order, the evidence
+drawer, the compare matrix, pharmacist review, note download with audit hash, share links, renal
+estimation, interaction blocking, insights, calculators, audit verification in the browser, dark theme,
+a 390 pixel layout with no horizontal scrolling, and zero console errors. CI now runs the backend on
+Python 3.11 to 3.13, the integration tests, both frontend builds and this browser test.
+
+<a id="files"></a>
+## 11. Files in this upgrade
+
+**New**
+
+```text
+netlify.toml                                    Netlify build, edge function and security headers
+UPGRADES.md                                     this document
+.github/workflows/netlify-demo.yml              optional deploy from GitHub Actions
+backend/README.md                               package readme (fixes pip install and Docker build)
+backend/shortfall_bridge/
+  _settings_fallback.py                         pydantic-settings stand in for the browser runtime
+  analytics/__init__.py, insights.py, reviews.py
+  api/handlers.py                               framework free handlers shared by server and browser
+  api/dispatch.py                               path router used by the browser runtime
+  browser/__init__.py, runtime.py               Pyodide entry point, parallel fetch and sync XHR
+  clinical/__init__.py, renal.py, dosing.py
+  interop/__init__.py, fhir.py, cds_hooks.py
+  reporting/__init__.py, note.py
+  sources/openfda_live.py                       openFDA query builders, parsers and fetchers
+  store/live.py                                 live openFDA knowledge store with prefetch plan
+  store/ledger.py                               audit hash chain
+backend/tests/
+  openfda_emulator.py                           openFDA emulator (in process fetcher and HTTP server)
+  test_renal.py, test_dosing.py, test_gates_v2.py, test_live_store.py, test_ledger_reviews.py,
+  test_fhir_cds.py, test_api_v2.py, test_runtime_portability.py, test_reports_eval_http.py,
+  test_postgres_v2.py
+frontend/netlify/edge-functions/fda-proxy.ts    openFDA proxy with edge cache
+frontend/scripts/bundle-python.mjs              packs the Python engine for the static site
+frontend/e2e/demo.e2e.mjs                       browser end to end test
+frontend/src/vite-env.d.ts, share.ts, history.ts
+frontend/src/engine/config.ts, protocol.ts, transport.ts, engine.worker.ts
+frontend/src/components/Charts.tsx, EngineStatus.tsx, GateMatrix.tsx, RenalPreview.tsx,
+  ReviewControls.tsx, ScoreBreakdown.tsx
+frontend/src/pages/Insights.tsx, Calculators.tsx
+docs/netlify_demo.md, docs/fhir_cds_hooks.md, docs/openapi.json
+docs/examples/fhir_bundle.json, cds_order_select.json, batch_ward.json
+docs/screenshots/v2/*.png
+```
+
+**Modified**
+
+```text
+.env.example  .gitignore  Makefile  compose.yaml  .github/workflows/ci.yml  infra/docker/api.Dockerfile
+docs/clinical_safety_case.md
+backend/pyproject.toml  backend/shortfall_bridge/__init__.py (2.0.0)  cli.py  config.py  observability.py
+backend/shortfall_bridge/api/app.py, container.py, schemas.py
+backend/shortfall_bridge/domain/enums.py, models.py, normalize.py
+backend/shortfall_bridge/engine/candidates.py, gates.py, resolver.py, scoring.py, service.py
+backend/shortfall_bridge/evaluation/runner.py, scenarios.yaml
+backend/shortfall_bridge/generation/evidence_pack.py, llm.py, verifier.py
+backend/shortfall_bridge/sources/http.py, openfda.py, orange_book.py, rxnav.py
+backend/shortfall_bridge/store/base.py, memory.py, postgres.py, schema.sql
+backend/tests/conftest.py (helpers appended; existing fixtures untouched)
+frontend/nginx.conf  frontend/package.json  frontend/vite.config.ts
+frontend/src/App.tsx, api.ts, types.ts, styles.css
+frontend/src/components/Icons.tsx, OrderPanel.tsx, Results.tsx
+frontend/src/pages/Method.tsx, ShortageMonitor.tsx, Workbench.tsx
+```
 <a id="safety"></a>
 ## 13. Safety, governance and limitations
 
@@ -656,6 +881,19 @@ shortfall_bridge_ai/
 * A pharmacist review mode that records agreement or override per option, creating labelled data to measure and improve ranking.
 * Biomedical embedding and reranking models selected by the scenario suite rather than benchmarks.
 * FHIR MedicationRequest input so the workbench can open directly from an electronic prescribing system.
+
+Upgrading an existing deployment
+
+* **Database**: no manual migration. `schema.sql` is still idempotent and adds the audit chain columns
+  and `pharmacist_reviews` on start up. Existing audit rows are reported as legacy, and the chain
+  starts with the first v2 record.
+* **API clients**: every change is additive. `/health` is unchanged. Set `SFB_API_KEYS` in production;
+  the API logs a warning when it starts in production without keys.
+* **Behind nginx**: the bundled compose file sets `SFB_TRUST_PROXY_HEADERS=true`, and `nginx.conf` now
+  forwards client addresses and the `/cds-services` routes. Enable it only behind a proxy you control.
+* **Ranking**: scores for options with route mismatch, market level supply cautions or dose ceiling
+  problems change by design. Re-run `make eval` on your corpus and have the clinical safety officer
+  review the scenario report before release, as the safety case requires.
 
 ## Licence
 
