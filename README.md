@@ -81,7 +81,7 @@ Exact record counts change with every release, so the ingestion job records the 
 
 The architecture follows a ports and adapters (hexagonal) design. The clinical engine depends only on a `KnowledgeStore` protocol; PostgreSQL with pgvector implements it in production, and an in memory adapter with identical semantics implements it for tests and single machine evaluation. All diagrams below are written in Mermaid and render natively on GitHub, so they are versioned, reviewable and diffable alongside the code they describe.
 
-### Diagram 1. System context
+### SYSTEM CONTEXT
 
 ```mermaid
 flowchart LR
@@ -119,7 +119,7 @@ flowchart LR
 
 The context diagram fixes the trust boundary before any design detail. Three human roles interact with the system, and each wants something different: the pharmacist wants speed and completeness, the prescriber wants a clear ranked answer, and the clinical safety officer wants traceability after the fact. Four public data publishers feed the system, and all of them are government sources with stable, documented interfaces, which is why the knowledge base can claim authority without curation by hand. The single outbound dependency that carries clinical risk is the language model, and the diagram makes its constraint explicit: it receives only an evidence pack the engine has assembled, never raw patient context beyond what the engine chose to state, and never the ability to decide. Because the model sits on the edge rather than in the decision path, the system remains fully functional with the model switched off, which is the default configuration.
 
-### Diagram 2. Containers and deployment
+### CONTAINERS AND DEPLOYMENT
 
 ```mermaid
 flowchart TB
@@ -173,7 +173,7 @@ flowchart TB
 
 The deployment separates request serving from batch work. The API containers are stateless and scale horizontally; everything durable lives in PostgreSQL, so a restart loses nothing. Ingestion runs as a one shot job under a Compose profile (or a Kubernetes CronJob in production) because downloading and embedding the full label corpus is a long, CPU bound task that must never compete with clinical requests. Shortages change daily while labels change weekly, so a separate lightweight refresh job updates only the shortage table, keeping the supply gate current without reindexing a hundred thousand labels. Nginx serves the compiled interface and applies a strict Content Security Policy, frame denial and no sniff headers, and proxies `/api` so the browser sees one origin and no CORS exposure in production. Embedding model weights live in a mounted cache so containers start without network downloads. Prometheus scrapes latency histograms per engine stage, gate outcome counters and narrative verification ratios, which are the operational signals a clinical service actually needs.
 
-### Diagram 3. Data ingestion pipeline
+### DATA INGESTION PIPELINE
 
 ```mermaid
 flowchart LR
@@ -236,7 +236,7 @@ flowchart LR
 
 Three design choices in this pipeline matter clinically. First, **normalisation is the riskiest step**, because the three FDA sources describe the same product differently: openFDA says route `INTRAVENOUS`, the Orange Book says `INJECTABLE;INJECTION`, and the shortage list says `Injection, solution`. A dedicated normaliser reduces every name to its active moiety (so `methylprednisolone sodium succinate` links to `methylprednisolone`), maps routes into families (parenteral, oral, oromucosal and so on), separates modified release from immediate release forms, and compares strengths on a canonical concentration (so `40 mg/4 mL` equals `10 mg/mL`). Salts are kept on the ingredient because metoprolol tartrate and metoprolol succinate are different products, but stripped for class and equivalence lookups. Second, **chunks never cross section boundaries**, so every citation maps to exactly one labelled section and the section type can drive both retrieval priors and safety gates. The chunker splits on numbered subheadings first, so a renal dosing table stays attached to its heading. Third, **ingestion is idempotent and versioned**: label partitions are cached with SHA256 checksums, upserts keep the newest label version per set id, shortages and the Orange Book are replaced atomically, and each run writes counts to `ingestion_runs` so every recommendation can state how fresh its data was.
 
-### Diagram 4. Knowledge model
+### KNOWLEDGE MODEL
 
 ```mermaid
 flowchart LR
@@ -266,7 +266,7 @@ flowchart LR
 
 The active moiety is the join key of the whole system. Labels, shortages, Orange Book products, classes and equivalence tables come from different publishers with different identifiers, but each can be reduced reliably to a normalised active moiety, so the model is a star around that hub rather than a fragile chain of cross references. Chunks carry a denormalised copy of their label's moieties and a GIN index, which lets every retrieval query filter to one candidate ingredient before scoring. Without that filter, a question about bumetanide would rank passages from furosemide labels that mention bumetanide. Each chunk also stores a `text_hash`: generic manufacturers often publish word for word identical labels, so retrieval deduplicates by hash and shows a clinician one copy of a sentence rather than forty. Classes arrive from two places: EPC classes carried on the labels themselves (available offline immediately) and ATC and EPC links from RxClass (richer, added by enrichment). The engine treats both uniformly through the store interface. The audit record closes the loop, linking every response to the exact chunks it cited.
 
-### Diagram 5. Substitution reasoning pipeline
+### SUBSTITUTION REASONING PIPELINE
 
 ```mermaid
 flowchart TB
@@ -321,7 +321,7 @@ flowchart TB
 
 The pipeline mirrors how an experienced pharmacist reasons, made explicit and repeatable. The tiers are ordered by clinical disruption: switching manufacturer of an A rated product changes nothing for the patient, switching route changes bioavailability, switching ingredient changes pharmacology, and switching class changes the therapeutic approach. Candidate generation is deliberately generous, because safety filtering happens afterwards and an option that is never generated can never be shown. Tier 4 is the exception: an alternative class is only proposed when dense and lexical retrieval agree that the indications overlap and similarity clears a calibrated floor, which suppresses neighbours that share only label boilerplate. Every stage is timed and exported as a Prometheus histogram, so a slow stage is visible in production. Abstention is a first class outcome. If the drug cannot be resolved, or every candidate is blocked, the response says so plainly and recommends escalation rather than returning a weak answer.
 
-### Diagram 6. Safety and grounding architecture
+### SAFETY AND GROUNDING ARCHITECTURE
 
 ```mermaid
 flowchart LR
@@ -371,7 +371,7 @@ flowchart LR
 
 This diagram shows the two independent defences against harm. The first defence is the gate layer. Gates do not depend on retrieval ranking: they read the complete relevant sections of each candidate's labels, so a contraindication on the ninth passage is found as reliably as one on the first. Rule extractors turn label language into checkable rules. A sentence such as "Contraindicated in patients with CrCl less than 30 mL/min" becomes a threshold with an action of contraindicated, and qualitative phrases such as "severe renal impairment" map to conservative thresholds. Interactions are checked in both directions, the candidate's label naming the patient's medicine and the medicine's label naming the candidate, at both ingredient and class level. That is how simvastatin is blocked for a patient on clarithromycin even though the trigger sentence appears in either label. Missing data produces **Needs data**, never Clear. The second defence is the grounding verifier. Even when a language model writes the summary, every sentence must cite engine facts or label passages that exist in the evidence pack, every number must appear in the cited text, and every drug named must belong to the decision. Failing sentences are dropped, and if fewer than 60 percent survive, the system discards the model output entirely and uses the deterministic template.
 
-### Diagram 7. Observability, evaluation and governance loop
+### OBSERVABILITY, EVALUATION AND GOVERNANCE LOOP
 
 ```mermaid
 flowchart LR
@@ -433,17 +433,6 @@ Each major decision below records the alternatives considered and the reason for
 <tr><td><b>Small open embedding model run locally</b></td><td>Hosted embedding APIs; large biomedical models</td><td>No patient adjacent text leaves the deployment for embedding. The BGE small English model is fast enough to embed the full corpus on CPU overnight and performs well on retrieval benchmarks. The embedder is pluggable for a biomedical model if evaluation favours one.</td></tr>
 <tr><td><b>Provider neutral LLM client over HTTP</b></td><td>Vendor SDKs</td><td>One OpenAI compatible client covers OpenRouter, vLLM, Ollama and gateways; a second covers the Anthropic Messages API. No SDK lock in, no additional dependency surface.</td></tr>
 </table>
-
-DEPLOYED TO NETLIFY
-
-1. Add new site, Import an existing project**, choose the repository. Accept the detected
-   settings; `netlify.toml` provides the base directory, build command, publish directory, edge function
-   and security headers.
-3. Optional: add the environment variable `OPENFDA_API_KEY` (free from open.fda.gov) to lift the
-   anonymous limit of about 1,000 openFDA requests a day per IP address.
-4. Your demo is live at `https://<site-name>.netlify.app`. Rename the site to, for example,
-   `shortfall-bridge-ai` under **Site configuration, Change site name**.
-
 
 <a id="clinical"></a>
 ## 6. Clinical logic in detail
