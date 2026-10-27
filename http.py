@@ -96,13 +96,23 @@ class HttpClient:
 
     # Requests ---------------------------------------------------------------------------------
 
-    def get_json(self, url: str, params: dict[str, Any] | None = None, use_cache: bool = True) -> Any:
+    def get_json(
+        self, url: str, params: dict[str, Any] | None = None, use_cache: bool = True, max_age_s: float | None = None
+    ) -> Any:
+        """GET JSON with an optional on disk cache. ``max_age_s`` expires cached entries (None keeps forever)."""
         path = self._cache_path(url, params) if use_cache else None
         if path and path.exists():
-            return json.loads(path.read_text())
+            fresh = max_age_s is None or (time.time() - path.stat().st_mtime) <= max_age_s
+            if fresh:
+                try:
+                    return json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    path.unlink(missing_ok=True)  # a torn write must not poison the cache
         data = self._get_json_uncached(url, params)
         if path is not None:
-            path.write_text(json.dumps(data))
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data))
+            tmp.replace(path)
         return data
 
     @retry(

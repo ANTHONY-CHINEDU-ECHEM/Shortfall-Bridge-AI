@@ -41,6 +41,9 @@ _FORM_WORDS = {
     "cream", "ointment", "gel", "patch", "transdermal", "inhalation", "aerosol", "nasal", "spray",
     "ophthalmic", "otic", "drops", "syrup", "elixir", "concentrate", "kit", "liquid", "intravenous",
     "subcutaneous", "intramuscular", "infusion", "pen", "prefilled", "syringe", "auto-injector",
+    # strength and pack units, so "Furosemide 10 mg/mL injection" resolves to furosemide
+    "mg", "mcg", "ug", "g", "gm", "ml", "l", "meq", "mmol", "unit", "units", "iu", "ampule", "ampoule",
+    "bag", "bottle", "carton", "pack", "each", "per", "x",
 }
 
 
@@ -255,7 +258,26 @@ def same_strength(a: str | None, b: str | None) -> bool:
     return sa.canonical() == sb.canonical()
 
 
-def word_boundary_contains(haystack: str, needle: str) -> bool:
+def word_boundary_contains(haystack: str, needle: str, plural: bool = False) -> bool:
+    """Whole word match. ``plural`` also accepts a trailing s or es ("sulfonamide" in "sulfonamides")."""
     if not needle or len(needle) < 3:
         return False
-    return re.search(rf"(?<![a-z0-9]){re.escape(needle.lower())}(?![a-z0-9])", haystack.lower()) is not None
+    suffix = "(?:e?s)?" if plural else ""
+    return re.search(rf"(?<![a-z0-9]){re.escape(needle.lower())}{suffix}(?![a-z0-9])", haystack.lower()) is not None
+
+
+_TEXT_ROUTE_HINTS: tuple[tuple[str, str], ...] = (
+    ("inject", "parenteral"), ("infusion", "parenteral"), ("intravenous", "parenteral"), ("vial", "parenteral"),
+    ("syringe", "parenteral"), ("intramuscular", "parenteral"), ("subcutaneous", "parenteral"),
+    ("ophthalmic", "ophthalmic"), ("otic", "otic"), ("nasal", "nasal"), ("inhal", "inhalation"),
+    ("nebuli", "inhalation"), ("transdermal", "transdermal"), ("topical", "topical"), ("cream", "topical"),
+    ("ointment", "topical"), ("rectal", "rectal"), ("suppositor", "rectal"), ("vaginal", "vaginal"),
+    ("oral", "oral"), ("tablet", "oral"), ("capsule", "oral"), ("syrup", "oral"), ("elixir", "oral"),
+    ("for suspension", "oral"),
+)
+
+
+def text_route_families(*texts: str | None) -> set[str]:
+    """Route families implied by free text such as a shortage presentation ('Injection, solution')."""
+    joined = " ".join(t for t in texts if t).lower()
+    return {fam for hint, fam in _TEXT_ROUTE_HINTS if hint in joined}

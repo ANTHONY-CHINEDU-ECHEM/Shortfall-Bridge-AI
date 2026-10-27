@@ -1,1 +1,1 @@
-"""Aggregate analytics over shortages and pharmacist reviews."""
+"""Human readable exports of stored recommendations."""

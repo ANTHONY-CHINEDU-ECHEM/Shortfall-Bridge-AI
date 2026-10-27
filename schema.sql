@@ -117,3 +117,26 @@ CREATE TABLE IF NOT EXISTS recommendation_audit (
     request     JSONB NOT NULL,
     response    JSONB NOT NULL
 );
+
+-- v2: tamper evident audit chain (existing rows stay legacy and unchained)
+ALTER TABLE recommendation_audit ADD COLUMN IF NOT EXISTS seq BIGSERIAL;
+ALTER TABLE recommendation_audit ADD COLUMN IF NOT EXISTS prev_hash TEXT;
+ALTER TABLE recommendation_audit ADD COLUMN IF NOT EXISTS record_hash TEXT;
+ALTER TABLE recommendation_audit ADD COLUMN IF NOT EXISTS chain_ts TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS ix_audit_seq ON recommendation_audit (seq);
+
+-- v2: pharmacist review of recommendations (agreement and overrides become labelled data)
+CREATE TABLE IF NOT EXISTS pharmacist_reviews (
+    review_id            TEXT PRIMARY KEY,
+    request_id           TEXT NOT NULL,
+    candidate_ingredient TEXT NOT NULL,
+    candidate_tier       TEXT,
+    decision             TEXT NOT NULL,
+    reason               TEXT,
+    chosen_alternative   TEXT,
+    reviewer_role        TEXT NOT NULL DEFAULT 'pharmacist',
+    rank                 INT,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_reviews_request ON pharmacist_reviews (request_id);
+CREATE INDEX IF NOT EXISTS ix_reviews_created ON pharmacist_reviews (created_at DESC);

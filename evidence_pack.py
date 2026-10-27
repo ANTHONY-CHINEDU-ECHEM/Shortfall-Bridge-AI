@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..domain.enums import GateStatus
-from ..domain.models import Candidate, Chunk, DrugConcept, ShortageSummary
+from ..domain.models import Candidate, Chunk, DrugConcept, RenalEstimate, ShortageSummary
 
 
 @dataclass
@@ -43,6 +43,7 @@ def build_pack(
     chunks: dict[str, Chunk],
     patient_terms: list[str],
     max_candidates: int = 5,
+    renal: RenalEstimate | None = None,
 ) -> EvidencePack:
     pack = EvidencePack()
     pack.allowed_drugs = {concept.ingredients[0], *[c.ingredient for c in ranked + blocked],
@@ -70,13 +71,16 @@ def build_pack(
 
     if shortage is not None:
         if shortage.in_shortage:
+            n = shortage.matching_records
             fact(
-                f"{concept.display_name} has {shortage.matching_records} current FDA shortage entries"
+                f"{concept.display_name} has {n} current FDA shortage entr{'y' if n == 1 else 'ies'}"
                 + (f"; reasons reported: {', '.join(shortage.reasons[:3])}" if shortage.reasons else "")
                 + "."
             )
         else:
             fact(f"{concept.display_name} has no current FDA shortage entry.")
+    if renal is not None and renal.value_ml_min is not None and renal.source not in {"entered_crcl", "entered_egfr"}:
+        fact(f"Renal function used for the safety checks is {renal.value_ml_min:g} mL/min ({renal.method}).")
     for i, c in enumerate(ranked[:max_candidates], 1):
         cautions = [g for g in c.gates if g.status in (GateStatus.CAUTION, GateStatus.UNKNOWN)]
         fact(
@@ -86,8 +90,17 @@ def build_pack(
         if c.dose_conversion:
             dc = c.dose_conversion
             if dc.feasible:
-                fact(f"For {c.ingredient}, the suggested starting dose is {dc.suggested_dose} "
-                     f"({dc.suggested_range}) converted from {dc.from_dose} of {dc.from_drug}.")
+                if dc.method.startswith("identity"):
+                    fact(f"For {c.display_name}, the dose is unchanged at {dc.suggested_dose} (A rated equivalent).")
+                else:
+                    fact(f"For {c.ingredient}, the suggested starting dose is {dc.suggested_dose}"
+                         + (f" ({dc.suggested_range})" if dc.suggested_range else "")
+                         + f" converted from {dc.from_dose} of {dc.from_drug}.")
+                if dc.ceiling_exceeded:
+                    fact(f"The suggested daily total for {c.ingredient} ({dc.suggested_daily_total}) exceeds the "
+                         f"labelled maximum of {dc.label_max_daily}.", dc.ceiling_citations)
+                    for cid in dc.ceiling_citations:
+                        passage(cid)
             elif dc.method.endswith("no_input_dose"):
                 fact("Enter the current dose to calculate equivalent starting doses for interchange options.")
             else:
@@ -97,6 +110,9 @@ def build_pack(
                  g.citations)
             for cid in g.citations:
                 passage(cid)
+        if c.route_match is False and c.routes_available:
+            fact(f"{c.ingredient} is not indexed by the requested route; it is available by the "
+                 f"{', '.join(c.routes_available)} route.")
         for cid in c.citations[:2]:
             passage(cid)
     for c in blocked[:4]:

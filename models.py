@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import hashlib
 from datetime import date, datetime
+from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .enums import (
     CandidateTier,
+    CreatinineUnit,
     GateName,
     GateStatus,
     HepaticImpairment,
     RecommendationStatus,
+    ReviewDecision,
     SectionType,
+    Sex,
     ShortageStatus,
 )
 
@@ -148,6 +152,11 @@ class DoseInput(BaseModel):
 class PatientContext(BaseModel):
     age_years: float | None = Field(default=None, ge=0, le=125)
     weight_kg: float | None = Field(default=None, gt=0, le=400)
+    height_cm: float | None = Field(default=None, ge=30, le=250)
+    sex: Sex = Sex.UNKNOWN
+    serum_creatinine: float | None = Field(default=None, gt=0, le=2500)
+    serum_creatinine_unit: CreatinineUnit = CreatinineUnit.MG_DL
+    on_dialysis: bool = False
     creatinine_clearance_ml_min: float | None = Field(default=None, ge=0, le=250)
     egfr_ml_min_1_73m2: float | None = Field(default=None, ge=0, le=250)
     hepatic_impairment: HepaticImpairment = HepaticImpairment.NONE
@@ -166,12 +175,28 @@ class PatientContext(BaseModel):
                 seen.append(s)
         return seen
 
+    @model_validator(mode="after")
+    def _plausible_creatinine(self) -> PatientContext:
+        # A value above 30 entered as mg/dL is almost certainly micromol/L; refuse rather than guess.
+        if (self.serum_creatinine is not None and self.serum_creatinine_unit is CreatinineUnit.MG_DL
+                and self.serum_creatinine > 30):
+            raise ValueError("serum_creatinine above 30 mg/dL is implausible; was it entered in umol/L?")
+        return self
+
     @property
     def renal_function(self) -> float | None:
-        """Creatinine clearance is preferred because most US labels dose by CrCl."""
+        """Creatinine clearance is preferred because most US labels dose by CrCl.
+
+        Dialysis is treated as end stage renal disease (below every labelled threshold) when no
+        measured value is entered, so dialysis restrictions are never silently skipped.
+        """
         if self.creatinine_clearance_ml_min is not None:
             return self.creatinine_clearance_ml_min
-        return self.egfr_ml_min_1_73m2
+        if self.egfr_ml_min_1_73m2 is not None:
+            return self.egfr_ml_min_1_73m2
+        if self.on_dialysis:
+            return 5.0
+        return None
 
 
 class SubstitutionRequest(BaseModel):
@@ -205,6 +230,9 @@ class GateResult(BaseModel):
     status: GateStatus
     rationale: str
     citations: list[str] = Field(default_factory=list)  # chunk ids
+    # Structured detail behind the rationale (for example supply scope or matched interaction terms).
+    # Scoring and the interface read these instead of parsing rationale text.
+    facts: dict[str, Any] = Field(default_factory=dict)
 
 
 class DoseConversion(BaseModel):
@@ -217,6 +245,21 @@ class DoseConversion(BaseModel):
     method: str
     reference: str | None = None
     warnings: list[str] = Field(default_factory=list)
+    from_route: str | None = None
+    to_route: str | None = None
+    doses_per_day: float | None = None  # parsed from the frequency text when it is unambiguous
+    suggested_daily_total: str | None = None
+    label_max_daily: str | None = None  # labelled maximum daily dose for the target drug, when found
+    ceiling_exceeded: bool = False
+    ceiling_citations: list[str] = Field(default_factory=list)
+
+
+class ScoreTerm(BaseModel):
+    """One additive term of a candidate's rank score, shown so the ranking is fully explainable."""
+
+    term: str
+    value: float
+    detail: str = ""
 
 
 class Candidate(BaseModel):
@@ -231,7 +274,11 @@ class Candidate(BaseModel):
     dose_conversion: DoseConversion | None = None
     citations: list[str] = Field(default_factory=list)
     score: float = 0.0
+    score_breakdown: list[ScoreTerm] = Field(default_factory=list)
     requires_specialist_review: bool = False
+    manufacturers: list[str] = Field(default_factory=list)  # T1: the unaffected sources proposed
+    routes_available: list[str] = Field(default_factory=list)  # route families with indexed products
+    route_match: bool | None = None  # available by the requested route family (None when unknown)
 
     @property
     def worst_gate(self) -> GateStatus:
@@ -266,6 +313,18 @@ class Narrative(BaseModel):
     verification: dict[str, int | float | bool | str] = Field(default_factory=dict)
 
 
+class RenalEstimate(BaseModel):
+    """Renal function the engine used, and how it was obtained."""
+
+    value_ml_min: float | None
+    source: str  # entered_crcl | entered_egfr | cockcroft_gault | ckd_epi_2021 | dialysis | none
+    method: str | None = None
+    weight_used: str | None = None
+    formula: str | None = None
+    egfr_ckd_epi_2021: float | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+
 class Recommendation(BaseModel):
     request_id: str
     created_at: datetime
@@ -278,8 +337,39 @@ class Recommendation(BaseModel):
     citations: dict[str, Citation]
     abstain_reasons: list[str] = Field(default_factory=list)
     data_versions: dict[str, str] = Field(default_factory=dict)
+    renal: RenalEstimate | None = None
+    warnings: list[str] = Field(default_factory=list)  # request level warnings (inferred values, data gaps)
+    timings_ms: dict[str, float] = Field(default_factory=dict)
+    engine_version: str = ""
     disclaimer: str = (
         "Decision support only. Verify every substitution against the current product label, local "
         "formulary and the patient record before prescribing, dispensing or administering."
     )
     latency_ms: float = 0.0
+
+
+# Governance -----------------------------------------------------------------------------------
+
+
+class ReviewRequest(BaseModel):
+    """A pharmacist's agreement or override for one option of a stored recommendation."""
+
+    request_id: str = Field(min_length=3, max_length=64)
+    candidate_ingredient: str = Field(min_length=2, max_length=200)
+    candidate_tier: CandidateTier | None = None
+    decision: ReviewDecision
+    reason: str | None = Field(default=None, max_length=2000)
+    chosen_alternative: str | None = Field(default=None, max_length=200)
+    reviewer_role: str = Field(default="pharmacist", max_length=60)
+
+    @model_validator(mode="after")
+    def _override_needs_reason(self) -> ReviewRequest:
+        if self.decision is not ReviewDecision.AGREE and not (self.reason or "").strip():
+            raise ValueError("an override or rejection must state a reason")
+        return self
+
+
+class ReviewRecord(ReviewRequest):
+    review_id: str
+    created_at: datetime
+    rank: int | None = None  # position of the option in the stored recommendation, None if not found

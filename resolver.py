@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from ..domain.models import DrugConcept
 from ..domain.normalize import active_moiety, clean_text, ingredients_from_shortage_name
-from ..sources.rxnav import RxNavClient
 from ..store.base import KnowledgeStore
+
+if TYPE_CHECKING:
+    from ..sources.rxnav import RxNavClient
 
 logger = logging.getLogger(__name__)
 

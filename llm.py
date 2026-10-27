@@ -11,8 +11,6 @@ from __future__ import annotations
 import logging
 from typing import Protocol
 
-import httpx
-
 from ..config import Settings
 
 logger = logging.getLogger(__name__)
@@ -36,6 +34,8 @@ class OpenAICompatibleClient:
         self.name = f"llm:{settings.llm_model}"
 
     def complete(self, system: str, user: str) -> str:
+        import httpx
+
         resp = httpx.post(
             f"{self.s.llm_base_url.rstrip('/')}/chat/completions",
             headers={"Authorization": f"Bearer {self.s.llm_api_key}", "X-Title": "Shortfall Bridge AI"},
@@ -61,6 +61,8 @@ class AnthropicClient:
         self.name = f"llm:{settings.llm_model}"
 
     def complete(self, system: str, user: str) -> str:
+        import httpx
+
         resp = httpx.post(
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": self.s.llm_api_key or "", "anthropic-version": "2023-06-01"},

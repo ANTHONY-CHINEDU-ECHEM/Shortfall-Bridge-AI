@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ..domain.models import NarrativeSentence
@@ -69,13 +70,21 @@ def _mentioned_drugs(text: str, vocabulary: set[str]) -> set[str]:
 
 
 class GroundingVerifier:
-    def __init__(self, drug_vocabulary: set[str]) -> None:
-        self.vocab = {v for v in drug_vocabulary if len(v) >= 5}
+    """``drug_vocabulary`` may be a set or a callable returning one; live stores learn drugs per request."""
+
+    def __init__(self, drug_vocabulary: set[str] | Callable[[], set[str]]) -> None:
+        self._source = drug_vocabulary
+
+    @property
+    def vocab(self) -> set[str]:
+        raw = self._source() if callable(self._source) else self._source
+        return {v for v in raw if len(v) >= 5}
 
     def verify(self, items: list[dict], pack: EvidencePack) -> tuple[list[NarrativeSentence], VerificationReport]:
         report = VerificationReport(total=len(items))
         accepted: list[NarrativeSentence] = []
         allowed = {d.lower() for d in pack.allowed_drugs}
+        vocab = self.vocab
         for it in items:
             text = " ".join(str(it.get("text", "")).split())
             cites = [str(c).strip("[] ") for c in (it.get("cites") or [])]
@@ -92,7 +101,7 @@ class GroundingVerifier:
             if missing:
                 report.reasons["ungrounded_number"] += 1
                 continue
-            stray = {d for d in _mentioned_drugs(text, self.vocab) if not any(d in a or a in d for a in allowed)}
+            stray = {d for d in _mentioned_drugs(text, vocab) if not any(d in a or a in d for a in allowed)}
             if stray:
                 report.reasons["unsupported_drug"] += 1
                 continue

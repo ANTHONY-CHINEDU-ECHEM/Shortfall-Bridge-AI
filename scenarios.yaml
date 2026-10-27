@@ -127,3 +127,62 @@ scenarios:
       drug: zzqx unknownmab
     expect:
       status_in: [abstain]
+
+  # v2 scenarios: renal estimation, supply scope, duplicate therapy, allergy cross sensitivity, routing
+
+  - id: renal_estimated_from_creatinine
+    title: Atorvastatin shortage, CrCl never entered, Cockcroft-Gault from creatinine must drive the renal gate
+    request:
+      drug: atorvastatin
+      route: oral
+      patient: { age_years: 84, weight_kg: 52, height_cm: 160, sex: female, serum_creatinine: 2.4 }
+    expect:
+      renal_source: cockcroft_gault
+      warnings_contain: [Cockcroft-Gault]
+      gate_status_in: [{ ingredient: rosuvastatin, gate: renal, statuses: [caution, block] }]
+
+  - id: dialysis_is_end_stage
+    title: Patient on haemodialysis with no measured clearance must not pass renal checks as unknown
+    request:
+      drug: atorvastatin
+      route: oral
+      patient: { on_dialysis: true }
+    expect:
+      renal_source: dialysis
+      gate_status_in: [{ ingredient: rosuvastatin, gate: renal, statuses: [caution, block] }]
+
+  - id: statin_duplicate_therapy
+    title: Atorvastatin shortage in a patient whose list already includes simvastatin
+    request:
+      drug: atorvastatin
+      route: oral
+      patient: { current_medications: [simvastatin] }
+    expect:
+      gate_fact: [{ ingredient: rosuvastatin, gate: interactions, key: duplicate_therapy, contains: simvastatin }]
+
+  - id: replaced_drug_is_not_a_duplicate
+    title: The shortage drug itself on the medication list must not flag its alternatives as duplicates
+    request:
+      drug: furosemide
+      route: intravenous
+      patient: { current_medications: [furosemide] }
+    expect:
+      gate_status_in: [{ ingredient: bumetanide, gate: interactions, statuses: [pass] }]
+
+  - id: iv_alternative_ranks_above_oral_only
+    title: For an IV request, IV bumetanide must outrank oral only torsemide
+    request:
+      drug: furosemide
+      route: intravenous
+      current_dose: { amount: 40, unit: mg }
+    expect:
+      ranked_above: [{ higher: bumetanide, lower: torsemide }]
+
+  - id: sulfonamide_allergy_cross_sensitivity
+    title: Sulfa allergy must surface the labelled sulfonamide cross sensitivity of bumetanide
+    request:
+      drug: furosemide
+      route: intravenous
+      patient: { allergies: [sulfa] }
+    expect:
+      gate_status_in: [{ ingredient: bumetanide, gate: allergy, statuses: [caution, block] }]

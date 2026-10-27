@@ -136,6 +136,27 @@ class HepaticImpairment(StrEnum):
     SEVERE = "severe"  # Child Pugh C
 
 
+class Sex(StrEnum):
+    """Sex used only by creatinine clearance and eGFR equations (Cockcroft-Gault, CKD-EPI 2021)."""
+
+    FEMALE = "female"
+    MALE = "male"
+    UNKNOWN = "unknown"
+
+
+class CreatinineUnit(StrEnum):
+    MG_DL = "mg/dL"
+    UMOL_L = "umol/L"
+
+
+class ReviewDecision(StrEnum):
+    """Pharmacist review outcome recorded against one ranked option."""
+
+    AGREE = "agree"
+    OVERRIDE = "override"
+    REJECT = "reject"
+
+
 class RecommendationStatus(StrEnum):
     OK = "ok"
     PARTIAL = "partial"  # candidates exist but every one carries cautions

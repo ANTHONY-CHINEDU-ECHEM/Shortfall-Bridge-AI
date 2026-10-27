@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import statistics
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 from typing import Any
+from xml.sax.saxutils import escape
 
 import yaml
 
@@ -58,6 +60,21 @@ def check(rec: Recommendation, expect: dict[str, Any]) -> list[dict[str, Any]]:
                 cond = cond and dc.method.startswith(spec["method_prefix"])
             ok = ok or cond
         add("dose", ok, f"{spec['ingredient']}: {detail}")
+    if "renal_source" in expect:
+        src = rec.renal.source if rec.renal else "none"
+        add("renal_source", src == expect["renal_source"], f"renal source={src}")
+    for spec in expect.get("ranked_above", []):
+        order = [c.ingredient for c in rec.candidates]
+        hi, lo = spec["higher"], spec["lower"]
+        ok = hi in order and (lo not in order or order.index(hi) < order.index(lo))
+        add("ranked_above", ok, f"{hi} above {lo}; order={order}")
+    for text in expect.get("warnings_contain", []):
+        add("warnings_contain", any(text.lower() in w.lower() for w in rec.warnings), f"'{text}' in warnings")
+    for spec in expect.get("gate_fact", []):
+        hits = _find(rec, spec["ingredient"]) + _find(rec, spec["ingredient"], "blocked")
+        values = [g.facts.get(spec["key"]) for h in hits for g in h.gates if g.gate.value == spec["gate"]]
+        ok = any(spec["contains"] in (v if isinstance(v, list | str) else str(v)) for v in values if v is not None)
+        add("gate_fact", ok, f"{spec} observed={values}")
     return results
 
 
@@ -67,6 +84,7 @@ def run_suite(service: SubstitutionService, scenarios_path: Path | None, out_dir
     )
     scenarios = yaml.safe_load(text)["scenarios"]
     rows, latencies = [], []
+    gate_counts: Counter[str] = Counter()
     grounded_sentences = total_sentences = 0
     for sc in scenarios:
         req = SubstitutionRequest.model_validate(sc["request"])
@@ -74,6 +92,9 @@ def run_suite(service: SubstitutionService, scenarios_path: Path | None, out_dir
         rec = service.recommend(req, audit=False)
         latencies.append((time.perf_counter() - t0) * 1000)
         checks = check(rec, sc.get("expect", {}))
+        for c in rec.candidates + rec.not_recommended:
+            for g in c.gates:
+                gate_counts[f"{g.gate.value}:{g.status.value}"] += 1
         for s in rec.narrative.sentences:
             total_sentences += 1
             grounded_sentences += 1 if (s.citations or s.engine_facts) else 0
@@ -93,6 +114,7 @@ def run_suite(service: SubstitutionService, scenarios_path: Path | None, out_dir
         "latency_ms_p50": round(statistics.median(latencies), 1) if latencies else 0,
         "latency_ms_p95": round(sorted(latencies)[max(0, int(len(latencies) * 0.95) - 1)], 1) if latencies else 0,
         "narrative_sentences_grounded": f"{grounded_sentences}/{total_sentences}",
+        "gate_outcomes": dict(sorted(gate_counts.items())),
         "run_at": datetime.now(UTC).isoformat(),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -106,4 +128,20 @@ def run_suite(service: SubstitutionService, scenarios_path: Path | None, out_dir
         failing = "; ".join(c["detail"] for c in r["checks"] if not c["passed"]) or "none"
         md.append(f"| {r['id']} | {r['status']} | {'yes' if r['passed'] else 'no'} | {failing} |")
     (out_dir / "evaluation.md").write_text("\n".join(md) + "\n")
+    (out_dir / "evaluation.junit.xml").write_text(junit_xml(rows))
     return {"summary": summary, "scenarios": rows}
+
+
+def junit_xml(rows: list[dict[str, Any]]) -> str:
+    """JUnit report so CI systems display each clinical scenario as a test case."""
+    failures = sum(1 for r in rows if not r["passed"])
+    cases = []
+    for r in rows:
+        body = ""
+        if not r["passed"]:
+            msg = "; ".join(c["detail"] for c in r["checks"] if not c["passed"])
+            body = f'<failure message="{escape(msg, {chr(34): "&quot;"})}"/>'
+        cases.append(f'  <testcase classname="clinical_scenarios" name="{escape(r["id"])}" '
+                     f'time="{r["latency_ms"] / 1000:.3f}">{body}</testcase>')
+    return (f'<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="shortfall_bridge_scenarios" '
+            f'tests="{len(rows)}" failures="{failures}">\n' + "\n".join(cases) + "\n</testsuite>\n")

@@ -24,6 +24,7 @@ from ..domain.models import (
     DrugClass,
     LabelDocument,
     OrangeBookProduct,
+    ReviewRecord,
     ShortageRecord,
 )
 
@@ -41,6 +42,7 @@ class KnowledgeStore(Protocol):
     def upsert_classes(self, ingredient: str, classes: Sequence[DrugClass]) -> None: ...
     def record_ingestion_run(self, source: str, records: int, details: dict[str, Any]) -> None: ...
     def record_audit(self, request_id: str, request: dict[str, Any], response: dict[str, Any]) -> None: ...
+    def record_review(self, review: ReviewRecord) -> None: ...
     def commit(self) -> None: ...
 
     # Reads: entities --------------------------------------------------------------------------
@@ -80,9 +82,20 @@ class KnowledgeStore(Protocol):
     def stats(self) -> dict[str, int]: ...
     def data_versions(self) -> dict[str, str]: ...
     def get_audit(self, request_id: str) -> dict[str, Any] | None: ...
+    def verify_audit_chain(self) -> dict[str, Any]: ...
+    def reviews(self, request_id: str | None = None, limit: int = 500) -> list[ReviewRecord]: ...
 
 
-def build_store(settings: Settings) -> KnowledgeStore:
+def build_store(settings: Settings, embedder: Any | None = None) -> KnowledgeStore:
+    if settings.store_backend == "live":
+        from ..embeddings import build_embedder
+        from ..sources.http import HttpClient
+        from ..sources.openfda_live import HttpFetcher
+        from .live import LiveOpenFDAStore
+
+        client = HttpClient(settings, settings.data_dir / "cache" / "openfda_live", requests_per_second=4.0)
+        fetcher = HttpFetcher(client, settings.openfda_base_url, settings.openfda_api_key, settings.live_max_workers)
+        return LiveOpenFDAStore(fetcher, embedder or build_embedder(settings), settings)
     if settings.store_backend == "memory":
         from .memory import MemoryStore
 

@@ -20,7 +20,7 @@ import logging
 import zipfile
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..config import Settings
 from ..domain.enums import OPENFDA_FIELD_TO_SECTION, SectionType, ShortageStatus
@@ -34,7 +34,9 @@ from ..domain.normalize import (
 )
 from ..logging_setup import log_event
 from .dates import parse_date
-from .http import HttpClient
+
+if TYPE_CHECKING:  # httpx and tenacity are only needed where requests are actually made
+    from .http import HttpClient
 
 logger = logging.getLogger(__name__)
 

@@ -14,11 +14,14 @@ import logging
 import zipfile
 from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..config import Settings
 from ..domain.models import OrangeBookProduct
 from ..domain.normalize import active_moiety, split_ingredients, split_orange_book_form_route
-from .http import HttpClient
+
+if TYPE_CHECKING:  # httpx and tenacity are only needed where requests are actually made
+    from .http import HttpClient
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from importlib import resources
 from typing import Any
 
@@ -12,9 +13,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection, Engine
 
 from ..domain.enums import SectionType, ShortageStatus
-from ..domain.models import Chunk, DrugClass, LabelDocument, OrangeBookProduct, ShortageRecord
+from ..domain.models import Chunk, DrugClass, LabelDocument, OrangeBookProduct, ReviewRecord, ShortageRecord
 from ..domain.normalize import active_moiety
 from .base import text_hash
+from .ledger import GENESIS, chain_hash, verify_chain
 
 
 def _vec_literal(v: np.ndarray) -> str:
@@ -173,14 +175,51 @@ class PostgresStore:
         )
 
     def record_audit(self, request_id: str, request: dict[str, Any], response: dict[str, Any]) -> None:
+        """Append to the hash chain. An advisory lock serialises writers so the chain never forks."""
+        ts = datetime.now(UTC).isoformat()
+        req_json, resp_json = json.dumps(request, default=str), json.dumps(response, default=str)
+        # Hash what will be read back: JSONB round trips through json, so hash the decoded payload.
+        req_obj, resp_obj = json.loads(req_json), json.loads(resp_json)
+        with self.engine.begin() as c:
+            c.exec_driver_sql("SELECT pg_advisory_xact_lock(724519)")
+            prev = c.execute(text(
+                "SELECT record_hash FROM recommendation_audit WHERE record_hash IS NOT NULL ORDER BY seq DESC LIMIT 1"
+            )).scalar() or GENESIS
+            c.execute(
+                text(
+                    "INSERT INTO recommendation_audit (request_id, request, response, prev_hash, record_hash, chain_ts) "
+                    "VALUES (:id, CAST(:q AS jsonb), CAST(:r AS jsonb), :prev, :h, :ts) ON CONFLICT DO NOTHING"
+                ),
+                {"id": request_id, "q": req_json, "r": resp_json, "prev": prev, "ts": ts,
+                 "h": chain_hash(prev, request_id, req_obj, resp_obj, ts)},
+            )
+
+    def record_review(self, review: ReviewRecord) -> None:
+        d = review.model_dump(mode="json")
         with self.engine.begin() as c:
             c.execute(
                 text(
-                    "INSERT INTO recommendation_audit (request_id, request, response) "
-                    "VALUES (:id, CAST(:q AS jsonb), CAST(:r AS jsonb)) ON CONFLICT DO NOTHING"
+                    """INSERT INTO pharmacist_reviews (review_id, request_id, candidate_ingredient, candidate_tier,
+                    decision, reason, chosen_alternative, reviewer_role, rank, created_at) VALUES (:review_id,
+                    :request_id, :candidate_ingredient, :candidate_tier, :decision, :reason, :chosen_alternative,
+                    :reviewer_role, :rank, :created_at)"""
                 ),
-                {"id": request_id, "q": json.dumps(request, default=str), "r": json.dumps(response, default=str)},
+                d,
             )
+
+    def reviews(self, request_id: str | None = None, limit: int = 500) -> list[ReviewRecord]:
+        where = "WHERE request_id = :r" if request_id else ""
+        rows = self._q(f"SELECT * FROM pharmacist_reviews {where} ORDER BY created_at DESC LIMIT :l",
+                       r=request_id, l=limit)
+        return [ReviewRecord.model_validate(dict(r._mapping)) for r in rows]
+
+    def verify_audit_chain(self) -> dict[str, Any]:
+        rows = self._q("SELECT request_id, request, response, chain_ts, prev_hash, record_hash "
+                       "FROM recommendation_audit ORDER BY seq")
+        return verify_chain(
+            {"request_id": r[0], "request": r[1], "response": r[2], "created_at": r[3], "prev_hash": r[4],
+             "record_hash": r[5]} for r in rows
+        )
 
     # Reads ------------------------------------------------------------------------------------
 
@@ -376,8 +415,10 @@ class PostgresStore:
         return {r[0]: r[1].isoformat() for r in rows}
 
     def get_audit(self, request_id: str) -> dict[str, Any] | None:
-        rows = self._q("SELECT request, response, created_at FROM recommendation_audit WHERE request_id = :i", i=request_id)
+        rows = self._q("SELECT request, response, created_at, seq, prev_hash, record_hash FROM recommendation_audit "
+                       "WHERE request_id = :i", i=request_id)
         if not rows:
             return None
-        req, resp, created = rows[0]
-        return {"request": req, "response": resp, "created_at": created.isoformat()}
+        req, resp, created, seq, prev, h = rows[0]
+        return {"request": req, "response": resp, "created_at": created.isoformat(), "seq": seq,
+                "prev_hash": prev, "record_hash": h}

@@ -15,9 +15,10 @@ from typing import Any
 import numpy as np
 
 from ..domain.enums import SectionType, ShortageStatus
-from ..domain.models import Chunk, DrugClass, LabelDocument, OrangeBookProduct, ShortageRecord
+from ..domain.models import Chunk, DrugClass, LabelDocument, OrangeBookProduct, ReviewRecord, ShortageRecord
 from ..domain.normalize import active_moiety
 from .base import text_hash
+from .ledger import GENESIS, chain_hash, verify_chain
 
 _TOKEN = re.compile(r"[a-z0-9]+(?:\.[0-9]+)?")
 _STOP = {
@@ -51,6 +52,8 @@ class MemoryStore:
         self.classes: dict[str, list[DrugClass]] = {}
         self.runs: list[dict[str, Any]] = []
         self.audit: dict[str, dict[str, Any]] = {}
+        self.audit_order: list[str] = []
+        self.review_list: list[ReviewRecord] = []
         self.dead: set[int] = set()
 
     # Writes -----------------------------------------------------------------------------------
@@ -103,7 +106,25 @@ class MemoryStore:
         )
 
     def record_audit(self, request_id: str, request: dict[str, Any], response: dict[str, Any]) -> None:
-        self.audit[request_id] = {"request": request, "response": response, "created_at": datetime.now(UTC).isoformat()}
+        if request_id in self.audit:
+            return  # immutable: a request id is written once
+        created = datetime.now(UTC).isoformat()
+        prev = self.audit[self.audit_order[-1]]["record_hash"] if self.audit_order else GENESIS
+        self.audit[request_id] = {
+            "request": request, "response": response, "created_at": created, "seq": len(self.audit_order) + 1,
+            "prev_hash": prev, "record_hash": chain_hash(prev, request_id, request, response, created),
+        }
+        self.audit_order.append(request_id)
+
+    def record_review(self, review: ReviewRecord) -> None:
+        self.review_list.append(review)
+
+    def reviews(self, request_id: str | None = None, limit: int = 500) -> list[ReviewRecord]:
+        rows = [r for r in self.review_list if request_id is None or r.request_id == request_id]
+        return sorted(rows, key=lambda r: r.created_at, reverse=True)[:limit]
+
+    def verify_audit_chain(self) -> dict[str, Any]:
+        return verify_chain({"request_id": rid, **self.audit[rid]} for rid in self.audit_order)
 
     def commit(self) -> None:
         return None
@@ -316,7 +337,8 @@ class MemoryStore:
         return latest
 
     def get_audit(self, request_id: str) -> dict[str, Any] | None:
-        return self.audit.get(request_id)
+        rec = self.audit.get(request_id)
+        return dict(rec) if rec else None
 
     # Snapshot persistence ---------------------------------------------------------------------
 
@@ -340,6 +362,10 @@ class MemoryStore:
             json.dumps({k: [c.model_dump() for c in v] for k, v in self.classes.items()})
         )
         (path / "runs.json").write_text(json.dumps(self.runs))
+        (path / "audit.jsonl").write_text(
+            "".join(json.dumps({"request_id": rid, **self.audit[rid]}, default=str) + "\n" for rid in self.audit_order)
+        )
+        (path / "reviews.jsonl").write_text("".join(r.model_dump_json() + "\n" for r in self.review_list))
 
     def load(self, path: Path) -> None:
         labels = [LabelDocument.model_validate_json(line) for line in (path / "labels.jsonl").read_text().splitlines() if line]
@@ -364,3 +390,13 @@ class MemoryStore:
                 self.classes[k] = [DrugClass.model_validate(c) for c in v]
         if (path / "runs.json").exists():
             self.runs = json.loads((path / "runs.json").read_text())
+        if (path / "audit.jsonl").exists():
+            for line in (path / "audit.jsonl").read_text().splitlines():
+                if line:
+                    rec = json.loads(line)
+                    rid = rec.pop("request_id")
+                    self.audit[rid] = rec
+                    self.audit_order.append(rid)
+        if (path / "reviews.jsonl").exists():
+            self.review_list = [ReviewRecord.model_validate_json(x)
+                                for x in (path / "reviews.jsonl").read_text().splitlines() if x]

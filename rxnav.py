@@ -11,12 +11,14 @@ All calls are cached on disk and rate limited below the NLM fair use ceiling.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..config import Settings
 from ..domain.models import DrugClass
 from ..domain.normalize import active_moiety
-from .http import HttpClient
+
+if TYPE_CHECKING:  # httpx and tenacity are only needed where requests are actually made
+    from .http import HttpClient
 
 logger = logging.getLogger(__name__)
 

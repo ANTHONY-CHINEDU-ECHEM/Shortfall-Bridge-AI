@@ -100,7 +100,7 @@ class CandidateGenerator:
         out.candidates.extend(t3)
         if include_alternative_classes:
             exclude = {ing} | {c.ingredient for c in t3}
-            out.candidates.extend(self._tier4(ing, exclude))
+            out.candidates.extend(self._tier4(ing, exclude, family=presentation.family))
         if not t1:
             out.notes.append("No A rated therapeutic equivalent from an unaffected manufacturer was found.")
         seen: set[tuple[str, CandidateTier, str]] = set()
@@ -147,6 +147,8 @@ class CandidateGenerator:
                     "form, route and strength and are not listed in the current shortage entries."
                 ),
                 products=descriptors[:12], te_codes=sorted({x.te_code for x in unaffected if x.te_code}),
+                manufacturers=sorted({x.applicant_full_name or x.applicant for x in unaffected})[:12],
+                routes_available=[p.family] if p.family else [], route_match=True if p.family else None,
             )
         if products:
             return None  # every A rated source is affected
@@ -163,7 +165,8 @@ class CandidateGenerator:
                     "Other labellers hold current labels for this ingredient by the same route, but no Orange Book "
                     "TE code was matched. Confirm pharmaceutical equivalence before substituting."
                 ),
-                products=makers[:12],
+                products=makers[:12], manufacturers=makers[:12],
+                routes_available=[p.family] if p.family else [], route_match=True if p.family else None,
             )
         return None
 
@@ -200,6 +203,7 @@ class CandidateGenerator:
                     rationale=f"Same active ingredient, available as {form} by the {fam} route ({route_note}); "
                     f"{len(prods)} marketed product(s) indexed.",
                     products=sorted(set(prods))[:8],
+                    routes_available=[fam], route_match=fam == p.family if p.family else None,
                 )
             )
         return out
@@ -235,13 +239,14 @@ class CandidateGenerator:
                     + ("" if same_route else f" Not available by the {p.family} route (available: {', '.join(routes)})."),
                     shared_classes=classes,
                     products=sorted({d.title for d in labels})[:6],
+                    routes_available=routes, route_match=(p.family in routes) if p.family and routes else None,
                 )
             )
         return out[: self.max_class_members]
 
     # Tier 4 ------------------------------------------------------------------------------------
 
-    def _tier4(self, ing: str, exclude: set[str], limit: int = 4) -> list[Candidate]:
+    def _tier4(self, ing: str, exclude: set[str], limit: int = 4, family: str | None = None) -> list[Candidate]:
         indications = self.store.section_chunks(ing, (SectionType.INDICATIONS,), limit=3)
         if not indications:
             return []
@@ -270,11 +275,14 @@ class CandidateGenerator:
                 evidence[m] = ch.chunk_id
         out = []
         for m, _ in sorted(by_ing.items(), key=lambda kv: -kv[1])[:limit]:
+            routes = sorted({route_family(r) or r for d in self.store.labels_for_ingredient(m, limit=20)
+                             if len(d.ingredients) == 1 for r in d.routes})
             out.append(
                 Candidate(
                     ingredient=m, display_name=m, tier=CandidateTier.ALTERNATIVE_CLASS,
                     rationale=f"Labelled indications overlap with those of {ing}, but the pharmacological class differs.",
                     citations=[evidence[m]], requires_specialist_review=True,
+                    routes_available=routes, route_match=(family in routes) if family and routes else None,
                 )
             )
         return out
