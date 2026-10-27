@@ -5,7 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/api": "http://localhost:8000" },
+    proxy: { "/api/v1": "http://localhost:8000", "/cds-services": "http://localhost:8000" },
   },
-  build: { sourcemap: true },
+  worker: { format: "es" },
+  build: {
+    sourcemap: true,
+    target: "es2022",
+    chunkSizeWarningLimit: 600,
+  },
 });

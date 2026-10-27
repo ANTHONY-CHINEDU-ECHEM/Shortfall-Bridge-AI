@@ -1,13 +1,17 @@
 {
   "name": "shortfall-bridge-web",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "node scripts/bundle-python.mjs && VITE_ENGINE=browser vite",
     "build": "tsc -b && vite build",
+    "build:demo": "node scripts/bundle-python.mjs && tsc -b && VITE_ENGINE=browser vite build",
+    "bundle:py": "node scripts/bundle-python.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "test:e2e": "node e2e/demo.e2e.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

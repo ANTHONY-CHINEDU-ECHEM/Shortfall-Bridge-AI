@@ -23,6 +23,7 @@ export interface GateResult {
   status: GateStatus;
   rationale: string;
   citations: string[];
+  facts?: Record<string, unknown>;
 }
 
 export interface DoseConversion {
@@ -35,6 +36,19 @@ export interface DoseConversion {
   method: string;
   reference: string | null;
   warnings: string[];
+  from_route?: string | null;
+  to_route?: string | null;
+  doses_per_day?: number | null;
+  suggested_daily_total?: string | null;
+  label_max_daily?: string | null;
+  ceiling_exceeded?: boolean;
+  ceiling_citations?: string[];
+}
+
+export interface ScoreTerm {
+  term: string;
+  value: number;
+  detail: string;
 }
 
 export interface Candidate {
@@ -49,7 +63,11 @@ export interface Candidate {
   dose_conversion: DoseConversion | null;
   citations: string[];
   score: number;
+  score_breakdown?: ScoreTerm[];
   requires_specialist_review: boolean;
+  manufacturers?: string[];
+  routes_available?: string[];
+  route_match?: boolean | null;
 }
 
 export interface Citation {
@@ -92,11 +110,33 @@ export interface Recommendation {
   data_versions: Record<string, string>;
   disclaimer: string;
   latency_ms: number;
+  renal?: RenalEstimate | null;
+  warnings?: string[];
+  timings_ms?: Record<string, number>;
+  engine_version?: string;
 }
+
+export interface RenalEstimate {
+  value_ml_min: number | null;
+  source: string;
+  method: string | null;
+  weight_used: string | null;
+  formula: string | null;
+  egfr_ckd_epi_2021: number | null;
+  warnings: string[];
+}
+
+export type Sex = "female" | "male" | "unknown";
+export type CreatinineUnit = "mg/dL" | "umol/L";
 
 export interface PatientContext {
   age_years?: number | null;
   weight_kg?: number | null;
+  height_cm?: number | null;
+  sex?: Sex;
+  serum_creatinine?: number | null;
+  serum_creatinine_unit?: CreatinineUnit;
+  on_dialysis?: boolean;
   creatinine_clearance_ml_min?: number | null;
   egfr_ml_min_1_73m2?: number | null;
   hepatic_impairment: HepaticImpairment;
@@ -138,6 +178,7 @@ export interface ShortageRecord {
   therapeutic_category: string[];
   routes: string[];
   update_date: string | null;
+  initial_posting_date?: string | null;
 }
 
 export interface Meta {
@@ -148,4 +189,94 @@ export interface Meta {
   llm_provider: string;
   tiers: { id: Tier; label: string }[];
   gates: { gate: GateName; question: string; sections: string[] }[];
+  store_mode?: string;
+  runtime?: string;
+  auth_required?: boolean;
+  features?: string[];
+}
+
+export interface Ranked { name: string; count: number }
+
+export interface ShortageBrief {
+  record_id: string;
+  generic_name: string;
+  presentation: string | null;
+  company_name: string | null;
+  status: ShortageStatus;
+  initial_posting_date: string | null;
+  update_date: string | null;
+  days_listed: number | null;
+}
+
+export interface Insights {
+  generated_at: string;
+  as_of: string;
+  total_records: number;
+  by_status: Record<string, number>;
+  current: {
+    entries: number;
+    ingredients: number;
+    companies: number;
+    by_category: Ranked[];
+    by_reason: Ranked[];
+    by_route_family: Ranked[];
+    top_companies: Ranked[];
+    most_affected_ingredients: Ranked[];
+    days_listed: { median: number | null; p90: number | null; max: number | null };
+    longest_running: ShortageBrief[];
+  };
+  recently_updated: ShortageBrief[];
+  timeline: { month: string; new_postings: number; updates: number }[];
+}
+
+export interface EquivalenceTable {
+  id: string;
+  type: "ratio" | "mme" | "band";
+  title: string;
+  unit: string;
+  reference: string;
+  reference_url: string;
+  members: Record<string, Record<string, number | number[]>>;
+  excluded: Record<string, string>;
+  warnings: string[];
+}
+
+export type ReviewDecision = "agree" | "override" | "reject";
+
+export interface ReviewInput {
+  request_id: string;
+  candidate_ingredient: string;
+  candidate_tier?: Tier | null;
+  decision: ReviewDecision;
+  reason?: string | null;
+  chosen_alternative?: string | null;
+}
+
+export interface ReviewRecord extends ReviewInput {
+  review_id: string;
+  created_at: string;
+  rank: number | null;
+}
+
+export interface ReviewSummary {
+  reviews: number;
+  requests_reviewed: number;
+  decisions: Record<string, number>;
+  agreement_rate: number | null;
+  top_option_agreement_rate: number | null;
+  top_override_reasons: { reason: string; count: number }[];
+}
+
+export interface AuditVerification {
+  ok: boolean;
+  checked: number;
+  legacy_unchained: number;
+  head_hash: string | null;
+  first_break: string | null;
+  reason: string | null;
+}
+
+export interface BatchResponse {
+  results: { label: string | null; recommendation: Recommendation }[];
+  summary: Record<string, unknown>;
 }

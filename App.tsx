@@ -1,28 +1,39 @@
 import { useCallback, useEffect, useState } from "react";
+import { EngineStatus } from "./components/EngineStatus";
 import type { OrderState } from "./components/OrderPanel";
-import { IconBridge, IconList, IconMoon, IconShield, IconSun, IconWorkbench } from "./components/Icons";
+import { IconBridge, IconCalc, IconChart, IconList, IconMoon, IconShield, IconSun, IconWorkbench } from "./components/Icons";
+import { decodeOrder } from "./share";
+import { Calculators } from "./pages/Calculators";
+import { Insights } from "./pages/Insights";
 import { Method } from "./pages/Method";
 import { ShortageMonitor } from "./pages/ShortageMonitor";
 import { Workbench } from "./pages/Workbench";
 import type { ShortageRecord } from "./types";
 
-type Route = "workbench" | "shortages" | "method";
+type Route = "workbench" | "shortages" | "insights" | "calculators" | "method";
 const ROUTES: { id: Route; label: string; icon: JSX.Element }[] = [
   { id: "workbench", label: "Workbench", icon: <IconWorkbench /> },
   { id: "shortages", label: "Shortages", icon: <IconList /> },
+  { id: "insights", label: "Insights", icon: <IconChart /> },
+  { id: "calculators", label: "Calculators", icon: <IconCalc /> },
   { id: "method", label: "Method", icon: <IconShield /> },
 ];
 
-const fromHash = (): Route => {
-  const h = window.location.hash.replace("#/", "") as Route;
-  return ROUTES.some((r) => r.id === h) ? h : "workbench";
-};
+function parseHash(): { route: Route; query: string } {
+  const raw = window.location.hash.replace(/^#\/?/, "");
+  const [path, query = ""] = raw.split("?");
+  const route = (ROUTES.some((r) => r.id === path) ? path : "workbench") as Route;
+  return { route, query };
+}
 
 type Theme = "light" | "dark";
 
 export default function App() {
-  const [route, setRoute] = useState<Route>(fromHash);
+  const [{ route, query }, setLoc] = useState(parseHash);
   const [prefill, setPrefill] = useState<Partial<OrderState> | null>(null);
+  const [autoRun, setAutoRun] = useState(false);
+  const [openRef, setOpenRef] = useState<string | null>(null);
+  const [shortageQuery, setShortageQuery] = useState("");
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem("sfb-theme");
@@ -37,10 +48,22 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const onHash = () => setRoute(fromHash());
+    const onHash = () => setLoc(parseHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+
+  // Shared links: #/workbench?drug=...&run=1 prefills (and runs); #/workbench?ref=r_... opens a stored result.
+  useEffect(() => {
+    if (route !== "workbench" || !query) return;
+    const decoded = decodeOrder(query);
+    if (decoded?.ref) setOpenRef(decoded.ref);
+    else if (decoded) {
+      setPrefill(decoded.order);
+      setAutoRun(decoded.run);
+    }
+    window.history.replaceState(null, "", "#/workbench");
+  }, [route, query]);
 
   useEffect(() => {
     document.title = `${ROUTES.find((r) => r.id === route)?.label} | Shortfall Bridge AI`;
@@ -51,8 +74,9 @@ export default function App() {
   const consumePrefill = useCallback(() => setPrefill(null), []);
 
   const findAlternatives = (r: ShortageRecord) => {
-    const route = r.routes[0] ?? "";
-    setPrefill({ drug: r.ingredients[0] ?? r.generic_name, route, dosageForm: r.dosage_form ?? "" });
+    const fam = r.routes[0] ?? (/inject|vial|infusion/i.test(`${r.dosage_form} ${r.presentation}`) ? "intravenous" : "");
+    setPrefill({ drug: r.ingredients[0] ?? r.generic_name, route: fam, dosageForm: r.dosage_form ?? "" });
+    setAutoRun(false);
     go("workbench");
   };
 
@@ -80,8 +104,13 @@ export default function App() {
         </button>
       </nav>
       <main id="main" tabIndex={-1} className="main">
-        {route === "workbench" && <Workbench prefill={prefill} consumePrefill={consumePrefill} />}
-        {route === "shortages" && <ShortageMonitor onFindAlternatives={findAlternatives} />}
+        <EngineStatus />
+        {route === "workbench" && (
+          <Workbench prefill={prefill} autoRun={autoRun} openRef={openRef} consumePrefill={consumePrefill} />
+        )}
+        {route === "shortages" && <ShortageMonitor onFindAlternatives={findAlternatives} initialQuery={shortageQuery} />}
+        {route === "insights" && <Insights onSearch={(q) => { setShortageQuery(q); go("shortages"); }} />}
+        {route === "calculators" && <Calculators />}
         {route === "method" && <Method />}
       </main>
     </div>

@@ -1,0 +1,58 @@
+{
+  "labels": [
+    "Ward 7 bed 3",
+    "Ward 7 bed 9",
+    "Ward 7 bed 12"
+  ],
+  "requests": [
+    {
+      "drug": "furosemide",
+      "route": "intravenous",
+      "current_dose": {
+        "amount": 40,
+        "unit": "mg",
+        "frequency": "twice daily"
+      },
+      "patient": {
+        "age_years": 72,
+        "weight_kg": 80,
+        "height_cm": 175,
+        "sex": "male",
+        "serum_creatinine": 150,
+        "serum_creatinine_unit": "umol/L",
+        "current_medications": [
+          "lisinopril"
+        ]
+      }
+    },
+    {
+      "drug": "furosemide",
+      "route": "intravenous",
+      "current_dose": {
+        "amount": 80,
+        "unit": "mg",
+        "frequency": "once daily"
+      },
+      "patient": {
+        "age_years": 58,
+        "on_dialysis": true,
+        "allergies": [
+          "sulfa"
+        ]
+      }
+    },
+    {
+      "drug": "furosemide",
+      "route": "intravenous",
+      "current_dose": {
+        "amount": 20,
+        "unit": "mg",
+        "frequency": "every 12 hours"
+      },
+      "patient": {
+        "age_years": 34,
+        "pregnant": true
+      }
+    }
+  ]
+}

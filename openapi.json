@@ -1,0 +1,2933 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Shortfall Bridge AI",
+    "description": "Drug shortage therapeutic substitution decision support grounded in FDA labelling. Authenticate with `X-API-Key` or `Authorization: Bearer` when the deployment sets `SFB_API_KEYS`.",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Ready",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Meta",
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drugs/search": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Search Drugs",
+        "operationId": "search_drugs_api_v1_drugs_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 25,
+              "minimum": 1,
+              "default": 8,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DrugSuggestion"
+                  },
+                  "title": "Response Search Drugs Api V1 Drugs Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shortages": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "List Shortages",
+        "operationId": "list_shortages_api_v1_shortages_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortagePage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shortages/insights": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Insights",
+        "operationId": "insights_api_v1_shortages_insights_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Insights Api V1 Shortages Insights Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/{chunk_id}": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Evidence",
+        "operationId": "evidence_api_v1_evidence__chunk_id__get",
+        "parameters": [
+          {
+            "name": "chunk_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chunk Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/equivalence/tables": {
+      "get": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Equivalence Tables",
+        "operationId": "equivalence_tables_api_v1_equivalence_tables_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Equivalence Tables Api V1 Equivalence Tables Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/equivalence/convert": {
+      "post": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Equivalence Convert",
+        "operationId": "equivalence_convert_api_v1_equivalence_convert_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Equivalence Convert Api V1 Equivalence Convert Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/renal/estimate": {
+      "post": {
+        "tags": [
+          "reference"
+        ],
+        "summary": "Renal Estimate",
+        "operationId": "renal_estimate_api_v1_renal_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientContext"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenalEstimate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/verify": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Audit Verify",
+        "operationId": "audit_verify_api_v1_audit_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditVerification"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/{request_id}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Audit",
+        "operationId": "audit_api_v1_audit__request_id__get",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Audit Api V1 Audit  Request Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/{request_id}/note": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Audit Note",
+        "operationId": "audit_note_api_v1_audit__request_id__note_get",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(markdown|text)$",
+              "default": "markdown",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reviews": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Create Review",
+        "operationId": "create_review_api_v1_reviews_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "List Reviews",
+        "operationId": "list_reviews_api_v1_reviews_get",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewRecord"
+                  },
+                  "title": "Response List Reviews Api V1 Reviews Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reviews/summary": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Reviews Summary",
+        "operationId": "reviews_summary_api_v1_reviews_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Reviews Summary Api V1 Reviews Summary Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/substitutions": {
+      "post": {
+        "tags": [
+          "substitution"
+        ],
+        "summary": "Substitutions",
+        "operationId": "substitutions_api_v1_substitutions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubstitutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recommendation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/substitutions/batch": {
+      "post": {
+        "tags": [
+          "substitution"
+        ],
+        "summary": "Substitutions Batch",
+        "operationId": "substitutions_batch_api_v1_substitutions_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fhir/substitutions": {
+      "post": {
+        "tags": [
+          "interoperability"
+        ],
+        "summary": "Fhir Substitutions",
+        "operationId": "fhir_substitutions_api_v1_fhir_substitutions_post",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FhirSubstitutionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cds-services": {
+      "get": {
+        "tags": [
+          "interoperability"
+        ],
+        "summary": "Cds Discovery",
+        "operationId": "cds_discovery_cds_services_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Cds Discovery Cds Services Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cds-services/{service_id}": {
+      "post": {
+        "tags": [
+          "interoperability"
+        ],
+        "summary": "Cds Service",
+        "operationId": "cds_service_cds_services__service_id__post",
+        "parameters": [
+          {
+            "name": "service_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Service Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cds Service Cds Services  Service Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditVerification": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "checked": {
+            "type": "integer",
+            "title": "Checked"
+          },
+          "legacy_unchained": {
+            "type": "integer",
+            "title": "Legacy Unchained",
+            "default": 0
+          },
+          "head_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Hash"
+          },
+          "first_break": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Break"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "checked"
+        ],
+        "title": "AuditVerification"
+      },
+      "BatchItem": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommendation"
+        ],
+        "title": "BatchItem"
+      },
+      "BatchRequest": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/SubstitutionRequest"
+            },
+            "type": "array",
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "Requests"
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labels",
+            "description": "Optional caller labels (bed or episode), same order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests"
+        ],
+        "title": "BatchRequest",
+        "description": "Up to 25 requests evaluated together, for example every patient on a ward affected by one shortage."
+      },
+      "BatchResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItem"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results",
+          "summary"
+        ],
+        "title": "BatchResponse"
+      },
+      "Candidate": {
+        "properties": {
+          "ingredient": {
+            "type": "string",
+            "title": "Ingredient"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/CandidateTier"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "products": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Products"
+          },
+          "te_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Te Codes"
+          },
+          "shared_classes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Shared Classes"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/GateResult"
+            },
+            "type": "array",
+            "title": "Gates"
+          },
+          "dose_conversion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DoseConversion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "citations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "default": 0.0
+          },
+          "score_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreTerm"
+            },
+            "type": "array",
+            "title": "Score Breakdown"
+          },
+          "requires_specialist_review": {
+            "type": "boolean",
+            "title": "Requires Specialist Review",
+            "default": false
+          },
+          "manufacturers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Manufacturers"
+          },
+          "routes_available": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Routes Available"
+          },
+          "route_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Match"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ingredient",
+          "display_name",
+          "tier",
+          "rationale"
+        ],
+        "title": "Candidate"
+      },
+      "CandidateTier": {
+        "type": "string",
+        "enum": [
+          "T1_therapeutic_equivalent",
+          "T2_alternative_formulation",
+          "T3_therapeutic_interchange",
+          "T4_alternative_class"
+        ],
+        "title": "CandidateTier",
+        "description": "Substitution tiers, ordered from least to most clinical disruption."
+      },
+      "Citation": {
+        "properties": {
+          "chunk_id": {
+            "type": "string",
+            "title": "Chunk Id"
+          },
+          "set_id": {
+            "type": "string",
+            "title": "Set Id"
+          },
+          "section": {
+            "$ref": "#/components/schemas/SectionType"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet"
+          },
+          "dailymed_url": {
+            "type": "string",
+            "title": "Dailymed Url"
+          },
+          "effective_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "set_id",
+          "section",
+          "title",
+          "snippet",
+          "dailymed_url"
+        ],
+        "title": "Citation"
+      },
+      "ConvertRequest": {
+        "properties": {
+          "from_drug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "From Drug"
+          },
+          "to_drug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "To Drug"
+          },
+          "dose": {
+            "$ref": "#/components/schemas/DoseInput"
+          },
+          "from_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Route"
+          },
+          "to_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Route"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_drug",
+          "to_drug",
+          "dose"
+        ],
+        "title": "ConvertRequest"
+      },
+      "CreatinineUnit": {
+        "type": "string",
+        "enum": [
+          "mg/dL",
+          "umol/L"
+        ],
+        "title": "CreatinineUnit"
+      },
+      "DoseConversion": {
+        "properties": {
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          },
+          "from_drug": {
+            "type": "string",
+            "title": "From Drug"
+          },
+          "to_drug": {
+            "type": "string",
+            "title": "To Drug"
+          },
+          "from_dose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Dose"
+          },
+          "suggested_dose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Dose"
+          },
+          "suggested_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Range"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "from_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Route"
+          },
+          "to_route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Route"
+          },
+          "doses_per_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doses Per Day"
+          },
+          "suggested_daily_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Daily Total"
+          },
+          "label_max_daily": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Max Daily"
+          },
+          "ceiling_exceeded": {
+            "type": "boolean",
+            "title": "Ceiling Exceeded",
+            "default": false
+          },
+          "ceiling_citations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ceiling Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feasible",
+          "from_drug",
+          "to_drug",
+          "method"
+        ],
+        "title": "DoseConversion"
+      },
+      "DoseInput": {
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": "mg"
+          },
+          "frequency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "title": "DoseInput"
+      },
+      "DrugClass": {
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "title": "Class Id"
+          },
+          "class_name": {
+            "type": "string",
+            "title": "Class Name"
+          },
+          "class_type": {
+            "type": "string",
+            "title": "Class Type"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "class_id",
+          "class_name",
+          "class_type",
+          "source"
+        ],
+        "title": "DrugClass"
+      },
+      "DrugConcept": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "ingredients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "rxcui": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rxcui"
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/DrugClass"
+            },
+            "type": "array",
+            "title": "Classes"
+          },
+          "label_set_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Label Set Ids"
+          },
+          "resolution_method": {
+            "type": "string",
+            "title": "Resolution Method",
+            "default": "local_index"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "ingredients",
+          "display_name"
+        ],
+        "title": "DrugConcept",
+        "description": "A resolved query drug."
+      },
+      "DrugSuggestion": {
+        "properties": {
+          "ingredient": {
+            "type": "string",
+            "title": "Ingredient"
+          },
+          "display": {
+            "type": "string",
+            "title": "Display"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "in_current_shortage": {
+            "type": "boolean",
+            "title": "In Current Shortage",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "ingredient",
+          "display",
+          "score"
+        ],
+        "title": "DrugSuggestion"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "citation": {
+            "$ref": "#/components/schemas/Citation"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabelDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "citation",
+          "label"
+        ],
+        "title": "EvidenceResponse"
+      },
+      "FhirSubstitutionResponse": {
+        "properties": {
+          "mapping": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Mapping"
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mapping",
+          "recommendation"
+        ],
+        "title": "FhirSubstitutionResponse"
+      },
+      "GateDefinition": {
+        "properties": {
+          "gate": {
+            "type": "string",
+            "title": "Gate"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "sections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sections"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gate",
+          "question",
+          "sections"
+        ],
+        "title": "GateDefinition"
+      },
+      "GateName": {
+        "type": "string",
+        "enum": [
+          "availability",
+          "allergy",
+          "renal",
+          "hepatic",
+          "pregnancy_lactation",
+          "interactions",
+          "boxed_warning",
+          "age"
+        ],
+        "title": "GateName"
+      },
+      "GateResult": {
+        "properties": {
+          "gate": {
+            "$ref": "#/components/schemas/GateName"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GateStatus"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "citations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "facts": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gate",
+          "status",
+          "rationale"
+        ],
+        "title": "GateResult"
+      },
+      "GateStatus": {
+        "type": "string",
+        "enum": [
+          "pass",
+          "caution",
+          "block",
+          "unknown"
+        ],
+        "title": "GateStatus"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HepaticImpairment": {
+        "type": "string",
+        "enum": [
+          "none",
+          "mild",
+          "moderate",
+          "severe"
+        ],
+        "title": "HepaticImpairment"
+      },
+      "LabelDocument": {
+        "properties": {
+          "set_id": {
+            "type": "string",
+            "title": "Set Id"
+          },
+          "spl_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spl Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "effective_time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Time"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "generic_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Generic Names"
+          },
+          "brand_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brand Names"
+          },
+          "ingredients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "manufacturer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manufacturer"
+          },
+          "routes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Routes"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type"
+          },
+          "rxcuis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rxcuis"
+          },
+          "pharm_class_epc": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pharm Class Epc"
+          },
+          "pharm_class_moa": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pharm Class Moa"
+          },
+          "application_numbers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Application Numbers"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "openfda_label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "set_id",
+          "title"
+        ],
+        "title": "LabelDocument",
+        "description": "One structured product label (SPL) version."
+      },
+      "MetaResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "corpus": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Corpus"
+          },
+          "data_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Data Versions"
+          },
+          "embedding_model": {
+            "type": "string",
+            "title": "Embedding Model"
+          },
+          "llm_provider": {
+            "type": "string",
+            "title": "Llm Provider"
+          },
+          "tiers": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Tiers"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/GateDefinition"
+            },
+            "type": "array",
+            "title": "Gates"
+          },
+          "store_mode": {
+            "type": "string",
+            "title": "Store Mode",
+            "default": "indexed"
+          },
+          "runtime": {
+            "type": "string",
+            "title": "Runtime",
+            "default": "server"
+          },
+          "auth_required": {
+            "type": "boolean",
+            "title": "Auth Required",
+            "default": false
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "corpus",
+          "data_versions",
+          "embedding_model",
+          "llm_provider",
+          "tiers",
+          "gates"
+        ],
+        "title": "MetaResponse"
+      },
+      "Narrative": {
+        "properties": {
+          "sentences": {
+            "items": {
+              "$ref": "#/components/schemas/NarrativeSentence"
+            },
+            "type": "array",
+            "title": "Sentences"
+          },
+          "generator": {
+            "type": "string",
+            "title": "Generator"
+          },
+          "verification": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Verification"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sentences",
+          "generator"
+        ],
+        "title": "Narrative"
+      },
+      "NarrativeSentence": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "citations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "engine_facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Engine Facts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "NarrativeSentence"
+      },
+      "PatientContext": {
+        "properties": {
+          "age_years": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 125.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Years"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 400.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 250.0,
+                "minimum": 30.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
+          },
+          "sex": {
+            "$ref": "#/components/schemas/Sex",
+            "default": "unknown"
+          },
+          "serum_creatinine": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 2500.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serum Creatinine"
+          },
+          "serum_creatinine_unit": {
+            "$ref": "#/components/schemas/CreatinineUnit",
+            "default": "mg/dL"
+          },
+          "on_dialysis": {
+            "type": "boolean",
+            "title": "On Dialysis",
+            "default": false
+          },
+          "creatinine_clearance_ml_min": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 250.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creatinine Clearance Ml Min"
+          },
+          "egfr_ml_min_1_73m2": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 250.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Ml Min 1 73M2"
+          },
+          "hepatic_impairment": {
+            "$ref": "#/components/schemas/HepaticImpairment",
+            "default": "none"
+          },
+          "pregnant": {
+            "type": "boolean",
+            "title": "Pregnant",
+            "default": false
+          },
+          "breastfeeding": {
+            "type": "boolean",
+            "title": "Breastfeeding",
+            "default": false
+          },
+          "allergies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allergies"
+          },
+          "current_medications": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Current Medications"
+          }
+        },
+        "type": "object",
+        "title": "PatientContext"
+      },
+      "Recommendation": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RecommendationStatus"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DrugConcept"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shortage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShortageSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "not_recommended": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "title": "Not Recommended"
+          },
+          "narrative": {
+            "$ref": "#/components/schemas/Narrative"
+          },
+          "citations": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "object",
+            "title": "Citations"
+          },
+          "abstain_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Abstain Reasons"
+          },
+          "data_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Data Versions"
+          },
+          "renal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenalEstimate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "timings_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Timings Ms"
+          },
+          "engine_version": {
+            "type": "string",
+            "title": "Engine Version",
+            "default": ""
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Decision support only. Verify every substitution against the current product label, local formulary and the patient record before prescribing, dispensing or administering."
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "created_at",
+          "status",
+          "query",
+          "shortage",
+          "candidates",
+          "not_recommended",
+          "narrative",
+          "citations"
+        ],
+        "title": "Recommendation"
+      },
+      "RecommendationStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "partial",
+          "abstain"
+        ],
+        "title": "RecommendationStatus"
+      },
+      "RenalEstimate": {
+        "properties": {
+          "value_ml_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Ml Min"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "weight_used": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Used"
+          },
+          "formula": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formula"
+          },
+          "egfr_ckd_epi_2021": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egfr Ckd Epi 2021"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_ml_min",
+          "source"
+        ],
+        "title": "RenalEstimate",
+        "description": "Renal function the engine used, and how it was obtained."
+      },
+      "ReviewDecision": {
+        "type": "string",
+        "enum": [
+          "agree",
+          "override",
+          "reject"
+        ],
+        "title": "ReviewDecision",
+        "description": "Pharmacist review outcome recorded against one ranked option."
+      },
+      "ReviewRecord": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Request Id"
+          },
+          "candidate_ingredient": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Candidate Ingredient"
+          },
+          "candidate_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ReviewDecision"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "chosen_alternative": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chosen Alternative"
+          },
+          "reviewer_role": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Reviewer Role",
+            "default": "pharmacist"
+          },
+          "review_id": {
+            "type": "string",
+            "title": "Review Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "candidate_ingredient",
+          "decision",
+          "review_id",
+          "created_at"
+        ],
+        "title": "ReviewRecord"
+      },
+      "ReviewRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Request Id"
+          },
+          "candidate_ingredient": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Candidate Ingredient"
+          },
+          "candidate_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ReviewDecision"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "chosen_alternative": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chosen Alternative"
+          },
+          "reviewer_role": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Reviewer Role",
+            "default": "pharmacist"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "candidate_ingredient",
+          "decision"
+        ],
+        "title": "ReviewRequest",
+        "description": "A pharmacist's agreement or override for one option of a stored recommendation."
+      },
+      "ScoreTerm": {
+        "properties": {
+          "term": {
+            "type": "string",
+            "title": "Term"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "term",
+          "value"
+        ],
+        "title": "ScoreTerm",
+        "description": "One additive term of a candidate's rank score, shown so the ranking is fully explainable."
+      },
+      "SectionType": {
+        "type": "string",
+        "enum": [
+          "boxed_warning",
+          "indications_and_usage",
+          "dosage_and_administration",
+          "dosage_forms_and_strengths",
+          "contraindications",
+          "warnings_and_cautions",
+          "warnings",
+          "precautions",
+          "adverse_reactions",
+          "drug_interactions",
+          "use_in_specific_populations",
+          "pregnancy",
+          "lactation",
+          "pediatric_use",
+          "geriatric_use",
+          "clinical_pharmacology",
+          "pharmacokinetics",
+          "mechanism_of_action",
+          "overdosage",
+          "how_supplied",
+          "description"
+        ],
+        "title": "SectionType",
+        "description": "Label sections indexed for retrieval, aligned to openFDA label fields and SPL LOINC codes."
+      },
+      "Sex": {
+        "type": "string",
+        "enum": [
+          "female",
+          "male",
+          "unknown"
+        ],
+        "title": "Sex",
+        "description": "Sex used only by creatinine clearance and eGFR equations (Cockcroft-Gault, CKD-EPI 2021)."
+      },
+      "ShortagePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShortageRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ShortagePage"
+      },
+      "ShortageRecord": {
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "title": "Record Id"
+          },
+          "generic_name": {
+            "type": "string",
+            "title": "Generic Name"
+          },
+          "ingredients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ingredients"
+          },
+          "proprietary_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proprietary Name"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "presentation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Presentation"
+          },
+          "dosage_form": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dosage Form"
+          },
+          "strength": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strength"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShortageStatus",
+            "default": "Unknown"
+          },
+          "availability": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availability"
+          },
+          "shortage_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shortage Reason"
+          },
+          "related_info": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Info"
+          },
+          "therapeutic_category": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Therapeutic Category"
+          },
+          "package_ndc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Ndc"
+          },
+          "routes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Routes"
+          },
+          "rxcuis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rxcuis"
+          },
+          "pharm_class_epc": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pharm Class Epc"
+          },
+          "initial_posting_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Posting Date"
+          },
+          "update_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Update Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_id",
+          "generic_name"
+        ],
+        "title": "ShortageRecord",
+        "description": "One presentation level entry from the FDA Drug Shortages database."
+      },
+      "ShortageStatus": {
+        "type": "string",
+        "enum": [
+          "Current",
+          "Resolved",
+          "To Be Discontinued",
+          "Unknown"
+        ],
+        "title": "ShortageStatus"
+      },
+      "ShortageSummary": {
+        "properties": {
+          "in_shortage": {
+            "type": "boolean",
+            "title": "In Shortage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShortageStatus"
+          },
+          "matching_records": {
+            "type": "integer",
+            "title": "Matching Records"
+          },
+          "presentations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Presentations"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          },
+          "availability_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Availability Notes"
+          },
+          "last_updated": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "in_shortage",
+          "status",
+          "matching_records"
+        ],
+        "title": "ShortageSummary"
+      },
+      "SubstitutionRequest": {
+        "properties": {
+          "drug": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Drug"
+          },
+          "rxcui": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rxcui"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route"
+          },
+          "dosage_form": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dosage Form"
+          },
+          "current_dose": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DoseInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "patient": {
+            "$ref": "#/components/schemas/PatientContext"
+          },
+          "clinical_question": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinical Question"
+          },
+          "max_candidates": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Candidates",
+            "default": 8
+          },
+          "include_alternative_classes": {
+            "type": "boolean",
+            "title": "Include Alternative Classes",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "drug"
+        ],
+        "title": "SubstitutionRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

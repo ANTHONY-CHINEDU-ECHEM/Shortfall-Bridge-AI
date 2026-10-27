@@ -1,0 +1,218 @@
+{
+  "hook": "order-select",
+  "hookInstance": "x",
+  "context": {
+    "userId": "Practitioner/1",
+    "patientId": "p1",
+    "selections": [
+      "MedicationRequest/mr1"
+    ],
+    "draftOrders": {
+      "resourceType": "Bundle",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "mr1",
+            "status": "draft",
+            "intent": "order",
+            "subject": {
+              "reference": "Patient/p1"
+            },
+            "medicationCodeableConcept": {
+              "text": "Furosemide 10 mg/mL injection",
+              "coding": [
+                {
+                  "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+                  "code": "4603",
+                  "display": "furosemide"
+                }
+              ]
+            },
+            "dosageInstruction": [
+              {
+                "route": {
+                  "coding": [
+                    {
+                      "system": "http://snomed.info/sct",
+                      "code": "47625008",
+                      "display": "Intravenous"
+                    }
+                  ]
+                },
+                "timing": {
+                  "repeat": {
+                    "frequency": 2,
+                    "period": 1,
+                    "periodUnit": "d"
+                  }
+                },
+                "doseAndRate": [
+                  {
+                    "doseQuantity": {
+                      "value": 40,
+                      "unit": "mg",
+                      "code": "mg"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "prefetch": {
+    "patient": {
+      "resourceType": "Patient",
+      "id": "p1",
+      "gender": "male",
+      "birthDate": "1954-03-02"
+    },
+    "rest": {
+      "resourceType": "Bundle",
+      "entry": [
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "14682-9"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 150,
+              "unit": "umol/L"
+            },
+            "effectiveDateTime": "2026-10-25"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "2160-0"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 1.1,
+              "unit": "mg/dL"
+            },
+            "effectiveDateTime": "2025-01-01"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "29463-7"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 176,
+              "unit": "[lb_av]"
+            },
+            "effectiveDateTime": "2026-10-20"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8302-2"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 69,
+              "unit": "[in_i]"
+            },
+            "effectiveDateTime": "2026-10-20"
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "AllergyIntolerance",
+            "code": {
+              "text": "Penicillin"
+            },
+            "category": [
+              "medication"
+            ],
+            "clinicalStatus": {
+              "coding": [
+                {
+                  "code": "active"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "AllergyIntolerance",
+            "code": {
+              "text": "Latex"
+            },
+            "category": [
+              "environment"
+            ]
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "AllergyIntolerance",
+            "code": {
+              "text": "Codeine"
+            },
+            "verificationStatus": {
+              "coding": [
+                {
+                  "code": "refuted"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationStatement",
+            "status": "active",
+            "medicationCodeableConcept": {
+              "text": "Lisinopril 10 mg"
+            }
+          }
+        },
+        {
+          "resource": {
+            "resourceType": "MedicationRequest",
+            "id": "old",
+            "status": "stopped",
+            "medicationCodeableConcept": {
+              "text": "Warfarin"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
